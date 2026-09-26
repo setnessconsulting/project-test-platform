@@ -17,7 +17,7 @@ class ContractModel(BaseModel):
 
     def semantic_payload(self) -> dict[str, object]:
         """Return the content used when a stable semantic identity is required."""
-        return self.model_dump(mode="json", exclude=self.semantic_exclude)
+        return self.model_dump(mode="json", exclude=set(self.semantic_exclude))
 
 
 class EvidenceClass(StrEnum):
