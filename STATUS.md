@@ -2,8 +2,9 @@
 
 ## Repository state
 
-The public-safe core is implemented through API-389 on the current execution/evidence branch.
-API-390 and later integration/operator/pilot issues remain open.
+The repo-local public-safe core is implemented through API-392 on the current CLI/guidance branch.
+The remaining API-371 work is intentionally concentrated in cross-repository integration, real
+pilot qualification, migration parity, adversarial release hardening, and final closeout.
 
 ## Implemented foundation and policy
 
@@ -23,10 +24,10 @@ API-390 and later integration/operator/pilot issues remain open.
 - selective bounded mutation/fault evidence
 - deterministic quality evaluation and exact-scope waivers
 
-## Execution/evidence layer implemented on current branch
+## Implemented execution/evidence layer
 
 - exact-SHA deterministic ExecutionPlan compilation
-- profile/behavior evidence coverage cannot be skipped by change-scope optimization
+- mandatory profile/behavior evidence cannot be skipped by change-scope optimization
 - undeclared suite and trust escalation rejection
 - plan-bound QualityReceipt generation and validation
 - semantic receipt IDs and explicit replay detection
@@ -36,17 +37,32 @@ API-390 and later integration/operator/pilot issues remain open.
 - hosted verification and deployment minutes separated
 - no savings claim from incomplete usage evidence
 
-## Not yet implemented
+## CLI/reporting/guidance implemented on current branch
 
-- Jenkins adapter/consumer integration in project-jenkins
-- stable full CLI/reporting surface
-- deterministic AI-agent testing guidance
-- Portfolio Graph quality-export consumer integration
-- representative real-repository qualification
-- Jenkins same-SHA cutover qualification
-- final adversarial release qualification and maintenance-mode closeout
+- stable validate/inventory/behaviors/audit/gaps/plan/evaluate/actions commands
+- stable migration-plan/report/portfolio-export/doctor commands
+- deterministic guide command for AI-agent testing guidance
+- versioned JSON command envelope and bounded Markdown summaries
+- explicit tool/profile/contract identity in relevant outputs
+- non-zero gate/error exit semantics
+- offline fixture operation with no credential requirement
+- public-safe path/sensitive-field redaction
+- complete QualityExport generation that fails closed on partial behavior evidence
+- deterministic affected-behavior guidance with critical-journey obligations
+- no-new-test guidance when exact current evidence is already proven
+- no automatic deletion, trust widening, or model-inferred canonical facts
+
+## Remaining epic work
+
+- API-390: project-jenkins ExecutionPlan/QualityReceipt consumer integration
+- API-393: project-portfolio-graph QualityExport consumer integration
+- API-394: four representative real-repository qualifications
+- API-395: same-SHA Jenkins shadow parity/fallback and safe Actions migration proof
+- API-396: final adversarial hardening after primary integrations/pilots
+- API-397: exact-SHA V1 qualification, release, and maintenance-mode transition
 
 ## Evidence semantics
 
 Passing repository/synthetic verification does not establish Jenkins, GitHub Actions migration,
-Portfolio Graph consumption, or any live provider path as qualified.
+Portfolio Graph consumption, or any live provider path as qualified. API-396/API-397 must remain
+open until their prerequisite integration and pilot evidence exists.
