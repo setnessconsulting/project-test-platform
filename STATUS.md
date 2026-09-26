@@ -2,7 +2,7 @@
 
 ## Repository state
 
-API-372 foundation is complete. API-373 architecture authority/evidence boundaries are implemented on this branch.
+API-372 through API-374 are complete. API-375/API-376/API-377/API-386 policy-layer implementation is on this branch pending clean-room verification.
 
 ## Implemented
 
@@ -17,18 +17,24 @@ API-372 foundation is complete. API-373 architecture authority/evidence boundari
   evidence, and reporting work
 - synthetic unit tests for doctor, CLI JSON, and public-safety behavior
 
+## Policy layer implemented on current branch
+
+- eight explicit versioned Quality Profiles
+- strict .test-platform.yaml manifest parsing and profile binding
+- repository-local behavior and critical-journey declarations
+- path/symlink and arbitrary-entrypoint rejection
+- execution trust classes, capability matrix, and live-qualification gates
+- public-safe cross-stack examples
+
 ## Not yet implemented
 
 The following capabilities remain planned under later API-371 children and must not be
 represented as complete:
 
-- versioned Quality Profiles and public schemas
-- target repository manifest validation
-- behavior and critical-journey declarations
 - test-framework discovery and inventory
 - pytest, Vitest/Jest, Playwright, Pester, and JUnit adapters
 - test-value, gap, flake, freshness, mutation, and quality-policy analysis
-- execution trust policy and deterministic ExecutionPlans
+- deterministic ExecutionPlans
 - QualityReceipt generation and validation
 - GitHub Actions placement analysis
 - Jenkins execution integration
