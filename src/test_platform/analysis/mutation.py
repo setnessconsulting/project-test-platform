@@ -127,7 +127,13 @@ def analyze_mutation_evidence(
             evidence_ids=evidence_ids,
         )
 
-    survived = tuple(sorted(item.trial_id for item in trials if item.state is MutationTrialState.SURVIVED))
+    survived = tuple(
+        sorted(
+            item.trial_id
+            for item in trials
+            if item.state is MutationTrialState.SURVIVED
+        )
+    )
     if survived:
         return _finding(
             state=EvidenceState.MISSING,
