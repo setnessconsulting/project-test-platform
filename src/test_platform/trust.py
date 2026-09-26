@@ -5,7 +5,9 @@ from __future__ import annotations
 import re
 
 from test_platform.contracts import (
+    EvidenceClass,
     ExecutionTrustClass,
+    QualityProfile,
     TrustCapability,
     TrustPolicyDecision,
 )
@@ -87,3 +89,28 @@ def require_live_qualification_context(
         raise TrustPolicyError("live qualification requires an explicit target")
     if not owner_approved:
         raise TrustPolicyError("live qualification requires explicit owner approval")
+
+
+def require_profile_allows_trust(
+    profile: QualityProfile,
+    trust: ExecutionTrustClass,
+) -> None:
+    """Reject an execution trust class not declared by the selected profile."""
+    if trust not in profile.allowed_trust:
+        raise TrustPolicyError(
+            f"profile {profile.profile_id}@{profile.version} does not allow trust class {trust.value}"
+        )
+
+
+def require_evidence_allowed_for_trust(
+    trust: ExecutionTrustClass,
+    evidence_classes: tuple[EvidenceClass, ...],
+) -> None:
+    """Prevent lower-trust execution from claiming live qualification evidence."""
+    if (
+        EvidenceClass.LIVE in evidence_classes
+        and trust is not ExecutionTrustClass.LIVE_QUALIFICATION
+    ):
+        raise TrustPolicyError(
+            "live-qualification evidence requires live-qualification trust"
+        )
