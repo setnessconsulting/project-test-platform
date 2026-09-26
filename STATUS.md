@@ -2,45 +2,46 @@
 
 ## Repository state
 
-API-372 through API-386 are implemented through the current evaluator branch, except later
-execution/evidence/CI integration issues beginning with API-387.
+The public-safe core is implemented through API-389 on the current execution/evidence branch.
+API-390 and later integration/operator/pilot issues remain open.
 
 ## Implemented foundation and policy
 
-- Python 3.12+ public-safe package and CLI foundation
-- public-safety scanner and canonical clean-room verification
-- strict versioned public contracts and generated JSON Schema
+- Python 3.12+ public-safe package and canonical clean-room verification
+- strict versioned contracts and generated JSON Schema
 - eight explicit Quality Profiles
 - repository manifest, behavior, and critical-journey contracts
-- execution trust classes and live-qualification gates
+- execution trust classes and credential-safe live qualification policy
 
-## Implemented discovery and evidence intake
+## Implemented discovery and analysis
 
-- bounded deterministic pytest/Jest/Vitest/Playwright/Pester discovery
-- normalized test inventory with explicit behavior links
-- bounded JUnit/NUnit result adapters
-- hostile XML rejection, result-size bounds, and retry-attempt preservation
+- bounded pytest/Jest/Vitest/Playwright/Pester discovery
+- normalized test inventory and bounded result adapters
+- advisory evidence-backed test-value analysis
+- behavior/journey gap analysis
+- history, duration, flake, and freshness semantics
+- selective bounded mutation/fault evidence
+- deterministic quality evaluation and exact-scope waivers
 
-## Implemented deterministic analysis
+## Execution/evidence layer implemented on current branch
 
-- advisory test-value analysis from explicit evidence signals
-- behavior and critical-journey gap analysis bound to exact SHA/profile
-- test history, duration, flake, and freshness analysis
-- selective profile-driven mutation/fault evidence with cost limits
-- deterministic quality evaluator with PASS/FAIL/NOT_EVALUABLE/BLOCKED semantics
-- exact repository/profile-version waiver scope
-- wildcard, expired, stale-profile, non-waivable, and not-evaluable waiver protections
-- no numerical quality score and no opaque AI quality gate
+- exact-SHA deterministic ExecutionPlan compilation
+- profile/behavior evidence coverage cannot be skipped by change-scope optimization
+- undeclared suite and trust escalation rejection
+- plan-bound QualityReceipt generation and validation
+- semantic receipt IDs and explicit replay detection
+- live-evidence trust enforcement
+- evidence-based GitHub Actions workflow placement
+- deployment/security/fallback lanes retained deliberately
+- hosted verification and deployment minutes separated
+- no savings claim from incomplete usage evidence
 
 ## Not yet implemented
 
-- deterministic ExecutionPlans
-- QualityReceipt generation/validation and replay protection
-- GitHub Actions placement analysis
-- Jenkins execution integration
+- Jenkins adapter/consumer integration in project-jenkins
 - stable full CLI/reporting surface
-- AI-agent testing guidance
-- Portfolio Graph quality export/consumer integration
+- deterministic AI-agent testing guidance
+- Portfolio Graph quality-export consumer integration
 - representative real-repository qualification
 - Jenkins same-SHA cutover qualification
 - final adversarial release qualification and maintenance-mode closeout
