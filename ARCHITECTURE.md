@@ -48,3 +48,16 @@ bounded contracts.
 
 These boundaries are intentionally present before their implementation so later work does
 not collapse policy, execution, and evidence into one coupled subsystem.
+
+
+## Architecture decisions
+
+The V1 authority and evidence decisions are locked in:
+
+- docs/adr/0001-authority-model.md
+- docs/testing-philosophy.md
+- docs/evidence-layers.md
+- docs/executor-boundaries.md
+
+Later contract/schema work must encode these decisions rather than inventing a competing
+authority model.
