@@ -61,6 +61,23 @@ class ExecutionTrustClass(StrEnum):
     LIVE_QUALIFICATION = "live-qualification"
 
 
+class ExecutionTarget(StrEnum):
+    LOCAL = "local"
+    JENKINS = "jenkins"
+    GITHUB_ACTIONS = "github-actions"
+    MANUAL_LIVE = "manual-live"
+
+
+class TrustCapability(StrEnum):
+    REPOSITORY_READ = "repository-read"
+    TEST_EXECUTION = "test-execution"
+    SYNTHETIC_FIXTURES = "synthetic-fixtures"
+    PRIVATE_EVIDENCE_WRITE = "private-evidence-write"
+    BOUNDED_TEST_CREDENTIALS = "bounded-test-credentials"
+    BOUNDED_PROVIDER_CREDENTIALS = "bounded-provider-credentials"
+    LIVE_PROVIDER_READ = "live-provider-read"
+
+
 class QualityResult(StrEnum):
     PASS = "pass"
     FAIL = "fail"
@@ -112,37 +129,76 @@ class ProfileRequirement(ContractModel):
 
 class QualityProfile(ContractModel):
     schema_version: Literal["1"] = "1"
-    profile_id: str = Field(min_length=1)
+    profile_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9-]*$")
     version: str = Field(min_length=1)
     requirements: tuple[ProfileRequirement, ...]
+    allowed_trust: tuple[ExecutionTrustClass, ...]
+    recommended_execution: tuple[ExecutionTarget, ...]
+    live_evidence_max_age_days: int | None = Field(default=None, ge=1)
+    critical_journey_e2e_required: bool = False
+    mutation_analysis: RequirementLevel = RequirementLevel.NOT_APPLICABLE
 
 
 class ProfileBinding(ContractModel):
-    profile_id: str = Field(min_length=1)
+    profile_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9-]*$")
     version: str = Field(min_length=1)
 
 
 class SuiteDefinition(ContractModel):
-    suite_id: str = Field(min_length=1)
-    entrypoint: str = Field(min_length=1)
+    suite_id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
+    entrypoint: str = Field(
+        min_length=1,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+    )
     trust: ExecutionTrustClass
     timeout_seconds: int = Field(default=600, ge=1, le=86_400)
     evidence_classes: tuple[EvidenceClass, ...] = ()
 
 
 class Behavior(ContractModel):
-    behavior_id: str = Field(min_length=1)
+    behavior_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9_.:-]*$")
     description: str = Field(min_length=1)
     criticality: Criticality
-    required_evidence: tuple[EvidenceClass, ...]
+    required_evidence: tuple[EvidenceClass, ...] = Field(min_length=1)
     conditional_evidence: tuple[EvidenceClass, ...] = ()
 
 
 class CriticalJourney(ContractModel):
-    journey_id: str = Field(min_length=1)
+    journey_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9_.:-]*$")
     description: str = Field(min_length=1)
-    behavior_ids: tuple[str, ...]
+    behavior_ids: tuple[str, ...] = Field(min_length=1)
     required_evidence: tuple[EvidenceClass, ...] = (EvidenceClass.E2E,)
+
+
+class BehaviorDocument(ContractModel):
+    schema_version: Literal["1"] = "1"
+    behaviors: tuple[Behavior, ...]
+    critical_journeys: tuple[CriticalJourney, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_identity_and_references(self) -> Self:
+        """Require unique IDs and valid journey references."""
+        behavior_ids = [behavior.behavior_id for behavior in self.behaviors]
+        if len(behavior_ids) != len(set(behavior_ids)):
+            raise ValueError("behavior IDs must be unique")
+
+        journey_ids = [journey.journey_id for journey in self.critical_journeys]
+        if len(journey_ids) != len(set(journey_ids)):
+            raise ValueError("critical journey IDs must be unique")
+
+        known = set(behavior_ids)
+        for journey in self.critical_journeys:
+            missing = set(journey.behavior_ids) - known
+            if missing:
+                raise ValueError(
+                    f"critical journey {journey.journey_id} references unknown behaviors: "
+                    + ", ".join(sorted(missing))
+                )
+            if EvidenceClass.E2E not in journey.required_evidence:
+                raise ValueError(
+                    f"critical journey {journey.journey_id} must require end-to-end evidence"
+                )
+        return self
 
 
 class RepositoryManifest(ContractModel):
@@ -296,6 +352,14 @@ class Waiver(ContractModel):
         return self
 
 
+class TrustPolicyDecision(ContractModel):
+    trust: ExecutionTrustClass
+    requested: tuple[TrustCapability, ...]
+    allowed: bool
+    denied: tuple[TrustCapability, ...] = ()
+    reason: str = Field(min_length=1)
+
+
 class Diagnostic(ContractModel):
     code: str = Field(min_length=1)
     severity: DiagnosticSeverity
@@ -311,6 +375,7 @@ PUBLIC_SCHEMA_MODELS: tuple[type[ContractModel], ...] = (
     SuiteDefinition,
     Behavior,
     CriticalJourney,
+    BehaviorDocument,
     RepositoryManifest,
     TestCaseObservation,
     TestInventory,
@@ -326,5 +391,6 @@ PUBLIC_SCHEMA_MODELS: tuple[type[ContractModel], ...] = (
     WorkflowPlacementDecision,
     QualityExport,
     Waiver,
+    TrustPolicyDecision,
     Diagnostic,
 )
