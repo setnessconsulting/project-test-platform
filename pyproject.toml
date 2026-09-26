@@ -33,6 +33,9 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+test_platform = ["data/profiles/v1/*.yaml"]
+
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
