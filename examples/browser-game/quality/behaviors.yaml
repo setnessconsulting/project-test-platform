@@ -1,0 +1,19 @@
+schema_version: "1"
+behaviors:
+  - behavior_id: game.start
+    description: A new run starts from a valid initial state.
+    criticality: critical
+    required_evidence: [deterministic, end-to-end]
+  - behavior_id: game.complete
+    description: A player can reach a valid completion state.
+    criticality: critical
+    required_evidence: [deterministic, end-to-end]
+  - behavior_id: game.restart
+    description: The game can restart cleanly after completion.
+    criticality: high
+    required_evidence: [end-to-end]
+critical_journeys:
+  - journey_id: gameplay.core-loop
+    description: Start, complete, and restart a game session.
+    behavior_ids: [game.start, game.complete, game.restart]
+    required_evidence: [end-to-end]
