@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -16,6 +17,8 @@ from test_platform.analysis import (
 )
 from test_platform.behaviors import load_behavior_document
 from test_platform.contracts import (
+    BehaviorDocument,
+    DiscoveryReport,
     EvidenceClass,
     EvidenceState,
     GapFinding,
@@ -48,7 +51,7 @@ class RepositoryContext:
     root: Path
     manifest: RepositoryManifest
     profile: QualityProfile
-    behaviors: Any
+    behaviors: BehaviorDocument
 
 
 def load_repository_context(root: Path) -> RepositoryContext:
@@ -86,7 +89,7 @@ def build_repository_inventory(
     repository: str,
     sha: str,
     behavior_links: Mapping[str, tuple[str, ...]] | None = None,
-) -> tuple[Any, InventoryBuildResult]:
+) -> tuple[DiscoveryReport, InventoryBuildResult]:
     """Run bounded discovery and normalize an inventory."""
     discovery = discover_repository(context.root)
     inventory = build_inventory(
@@ -284,7 +287,7 @@ def evaluate_from_context(
     waivers: tuple[Waiver, ...],
     applicable_conditional_rules: frozenset[str],
     blocked_reasons: tuple[str, ...],
-    now: Any,
+    now: datetime,
 ) -> QualityAssessment:
     """Evaluate current repository quality from explicit inputs."""
     return evaluate_quality(
