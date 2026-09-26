@@ -69,7 +69,11 @@ def evaluate_capabilities(
         requested=requested,
         allowed=not denied,
         denied=denied,
-        reason="all requested capabilities allowed" if not denied else "capability denied by trust class",
+        reason=(
+            "all requested capabilities allowed"
+            if not denied
+            else "capability denied by trust class"
+        ),
     )
 
 
@@ -98,7 +102,8 @@ def require_profile_allows_trust(
     """Reject an execution trust class not declared by the selected profile."""
     if trust not in profile.allowed_trust:
         raise TrustPolicyError(
-            f"profile {profile.profile_id}@{profile.version} does not allow trust class {trust.value}"
+            f"profile {profile.profile_id}@{profile.version} "
+            f"does not allow trust class {trust.value}"
         )
 
 
