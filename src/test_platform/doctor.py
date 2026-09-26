@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import platform
 import sys
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from test_platform import __version__
