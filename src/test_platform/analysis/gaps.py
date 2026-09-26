@@ -117,9 +117,7 @@ def _evaluate_required_classes(
         class_states.append(EvidenceState.MISSING)
         reasons.append(f"{evidence_class.value} evidence does not prove the requirement")
 
-    if not required:
-        state = EvidenceState.PROVEN
-    elif all(item is EvidenceState.PROVEN for item in class_states):
+    if not required or all(item is EvidenceState.PROVEN for item in class_states):
         state = EvidenceState.PROVEN
     else:
         non_proven = [item for item in class_states if item is not EvidenceState.PROVEN]
