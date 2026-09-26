@@ -9,7 +9,6 @@ from pydantic import ValidationError
 
 from test_platform.canonical import semantic_hash
 from test_platform.contracts import (
-    Criticality,
     EvidenceClass,
     ExecutionPlan,
     ExecutionTrustClass,
