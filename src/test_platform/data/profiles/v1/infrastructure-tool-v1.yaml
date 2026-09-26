@@ -1,0 +1,36 @@
+schema_version: "1"
+profile_id: infrastructure-tool-v1
+version: 1.0.0
+allowed_trust: [pr-untrusted, trusted-branch, trusted-manual, live-qualification]
+recommended_execution: [local, jenkins, github-actions]
+live_evidence_max_age_days: 30
+critical_journey_e2e_required: false
+mutation_analysis: conditional
+requirements:
+  - rule_id: static-verification
+    evidence_class: static
+    level: required
+    non_waivable: true
+    description: Configuration, schema, lint, package, and build checks must pass.
+  - rule_id: deterministic-controls
+    evidence_class: deterministic
+    level: required
+    description: Policy, lifecycle, cleanup, and routing controls require deterministic evidence.
+  - rule_id: infrastructure-integration
+    evidence_class: integration
+    level: required
+    description: Controller, agent, filesystem, or service boundaries require integration evidence.
+  - rule_id: adversarial-infrastructure
+    evidence_class: adversarial-security
+    level: required
+    non_waivable: true
+    description: Isolation, privilege, secret, stale-target, and cleanup boundaries require negative evidence.
+  - rule_id: live-infrastructure-qualification
+    evidence_class: live-qualification
+    level: conditional
+    non_waivable: true
+    description: Claims about a real host or service require bounded live qualification.
+  - rule_id: assembled-operational-flow
+    evidence_class: end-to-end
+    level: conditional
+    description: Critical operational flows require assembled evidence where lower layers cannot prove them.
