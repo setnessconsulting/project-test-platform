@@ -7,8 +7,8 @@ import pytest
 from test_platform.contracts import (
     Behavior,
     BehaviorDocument,
-    CriticalJourney,
     Criticality,
+    CriticalJourney,
     EvidenceClass,
     EvidenceState,
     GapFinding,
