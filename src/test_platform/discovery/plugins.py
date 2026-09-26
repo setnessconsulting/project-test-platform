@@ -28,9 +28,9 @@ class PytestDiscoveryPlugin:
             name = path.rsplit("/", 1)[-1]
             if name in {"pytest.ini", "conftest.py"}:
                 configs.append(path)
-            if name.startswith("test_") and name.endswith(".py"):
-                tests.append(path)
-            elif name.endswith("_test.py"):
+            if (
+                name.startswith("test_") and name.endswith(".py")
+            ) or name.endswith("_test.py"):
                 tests.append(path)
 
             if name == "pyproject.toml":
