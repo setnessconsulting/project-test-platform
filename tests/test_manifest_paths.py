@@ -26,7 +26,10 @@ def test_manifest_rejects_behavior_path_symlink_escape(tmp_path: Path) -> None:
     outside = tmp_path / "outside"
     repo.mkdir()
     outside.mkdir()
-    (outside / "behaviors.yaml").write_text("schema_version: '1'\nbehaviors: []\n", encoding="utf-8")
+    (outside / "behaviors.yaml").write_text(
+        "schema_version: '1'\nbehaviors: []\n",
+        encoding="utf-8",
+    )
 
     link = repo / "quality"
     try:
