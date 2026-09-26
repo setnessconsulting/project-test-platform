@@ -111,6 +111,33 @@ class DiagnosticSeverity(StrEnum):
     ERROR = "error"
 
 
+class DiscoveryState(StrEnum):
+    DETECTED = "detected"
+    UNKNOWN = "unknown"
+    MALFORMED = "malformed"
+    LIMIT_EXCEEDED = "limit-exceeded"
+
+
+class FrameworkDiscovery(ContractModel):
+    framework: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9_.-]*$")
+    adapter_version: str = Field(min_length=1)
+    state: DiscoveryState
+    config_paths: tuple[str, ...] = ()
+    test_paths: tuple[str, ...] = ()
+    command_ids: tuple[str, ...] = ()
+    result_formats: tuple[str, ...] = ()
+    diagnostics: tuple[str, ...] = ()
+
+
+class DiscoveryReport(ContractModel):
+    schema_version: Literal["1"] = "1"
+    state: DiscoveryState
+    frameworks: tuple[FrameworkDiscovery, ...]
+    files_scanned: int = Field(ge=0)
+    truncated: bool = False
+    diagnostics: tuple[str, ...] = ()
+
+
 class EvidenceReference(ContractModel):
     evidence_id: str = Field(min_length=1)
     evidence_class: EvidenceClass
@@ -398,6 +425,8 @@ class Diagnostic(ContractModel):
 
 
 PUBLIC_SCHEMA_MODELS: tuple[type[ContractModel], ...] = (
+    FrameworkDiscovery,
+    DiscoveryReport,
     EvidenceReference,
     ProfileRequirement,
     QualityProfile,
