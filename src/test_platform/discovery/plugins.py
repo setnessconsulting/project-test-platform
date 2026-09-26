@@ -48,10 +48,11 @@ class PytestDiscoveryPlugin:
 
         if malformed:
             state = DiscoveryState.MALFORMED
-        elif configs or tests:
+        elif configs:
             state = DiscoveryState.DETECTED
         else:
             state = DiscoveryState.UNKNOWN
+            tests = []
 
         return FrameworkDiscovery(
             framework=self.framework_id,
