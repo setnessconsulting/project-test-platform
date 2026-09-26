@@ -138,6 +138,18 @@ class QualityProfile(ContractModel):
     critical_journey_e2e_required: bool = False
     mutation_analysis: RequirementLevel = RequirementLevel.NOT_APPLICABLE
 
+    @model_validator(mode="after")
+    def validate_profile_policy(self) -> Self:
+        """Require stable unique rules and explicit executor/trust policy."""
+        rule_ids = [requirement.rule_id for requirement in self.requirements]
+        if len(rule_ids) != len(set(rule_ids)):
+            raise ValueError("profile rule IDs must be unique")
+        if not self.allowed_trust:
+            raise ValueError("profile must declare at least one allowed trust class")
+        if not self.recommended_execution:
+            raise ValueError("profile must declare at least one recommended execution target")
+        return self
+
 
 class ProfileBinding(ContractModel):
     profile_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9-]*$")
@@ -186,8 +198,18 @@ class BehaviorDocument(ContractModel):
         if len(journey_ids) != len(set(journey_ids)):
             raise ValueError("critical journey IDs must be unique")
 
+        for behavior in self.behaviors:
+            if len(behavior.required_evidence) != len(set(behavior.required_evidence)):
+                raise ValueError(
+                    f"behavior {behavior.behavior_id} repeats a required evidence class"
+                )
+
         known = set(behavior_ids)
         for journey in self.critical_journeys:
+            if len(journey.behavior_ids) != len(set(journey.behavior_ids)):
+                raise ValueError(
+                    f"critical journey {journey.journey_id} repeats a behavior reference"
+                )
             missing = set(journey.behavior_ids) - known
             if missing:
                 raise ValueError(
@@ -206,6 +228,14 @@ class RepositoryManifest(ContractModel):
     profile: ProfileBinding
     behaviors_path: str = Field(min_length=1)
     suites: tuple[SuiteDefinition, ...]
+
+    @model_validator(mode="after")
+    def validate_suite_ids(self) -> Self:
+        """Require stable unique suite IDs."""
+        suite_ids = [suite.suite_id for suite in self.suites]
+        if len(suite_ids) != len(set(suite_ids)):
+            raise ValueError("suite IDs must be unique")
+        return self
 
 
 class TestCaseObservation(ContractModel):
