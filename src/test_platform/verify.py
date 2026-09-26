@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 import subprocess
 import sys
+from collections.abc import Sequence
 
 
 def _run(command: Sequence[str]) -> None:
