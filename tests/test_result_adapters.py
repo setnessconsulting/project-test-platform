@@ -14,7 +14,6 @@ from test_platform.adapters.results import (
 )
 from test_platform.contracts import QualityResult
 
-
 JUNIT = """<?xml version="1.0" encoding="UTF-8"?>
 <testsuite tests="4">
   <testcase classname="sample.Policy" name="allows valid target" time="0.10"/>
@@ -54,7 +53,10 @@ def test_junit_normalization_preserves_states_and_duration() -> None:
         (PLAYWRIGHT_ADAPTER, "playwright"),
     ],
 )
-def test_named_junit_adapters_use_common_result_model(adapter: object, framework: str) -> None:
+def test_named_junit_adapters_use_common_result_model(
+    adapter: object,
+    framework: str,
+) -> None:
     parsed = adapter.parse(JUNIT)  # type: ignore[attr-defined]
     assert parsed.framework == framework
     assert parsed.tests[0].framework == framework
