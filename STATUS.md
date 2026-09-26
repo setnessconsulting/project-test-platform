@@ -2,54 +2,37 @@
 
 ## Repository state
 
-API-372/API-373/API-374/API-375/API-376/API-377/API-378/API-386 are complete.
-API-379/API-380 normalized inventory and result adapters are implemented on this branch
-pending clean-room verification.
+API-372 through API-383 are implemented through the current analysis branch, except API-384/API-385
+which remain the next analysis/evaluator slices. API-386 execution trust policy is complete.
 
 ## Implemented
 
 - Python 3.12+ package and console entry point
-- version reporting
-- bounded credential-free doctor command with JSON output
-- canonical local/CI verification runner
-- high-confidence public-safety scanner
-- public repository security boundary
-- architecture, security, contribution, and agent guidance
-- synthetic unit tests for doctor, CLI JSON, and public-safety behavior
-
-## Implemented policy layer
-
-- eight explicit versioned Quality Profiles
+- bounded credential-free doctor and canonical clean-room verification
+- high-confidence public-safety scanner and public repository boundary
+- versioned public contracts and generated schema bundle
+- eight explicit Quality Profiles
 - strict .test-platform.yaml manifest parsing and profile binding
 - repository-local behavior and critical-journey declarations
-- path/symlink and arbitrary-entrypoint rejection
-- execution trust classes, capability matrix, and live-qualification gates
-- public-safe cross-stack examples
+- execution trust classes and live-qualification gates
+- bounded deterministic test-framework discovery
+- normalized test inventory with explicit behavior links
+- bounded pytest/Jest/Vitest/Playwright/Pester JUnit/NUnit result adapters
+- retry-attempt preservation and hostile XML rejection
 
-## Implemented discovery
+## Analysis implemented on current branch
 
-- bounded deterministic repository indexing
-- versioned discovery plugin registry
-- static pytest/Jest/Vitest/Playwright/Pester detection
-- explicit UNKNOWN/MALFORMED/LIMIT_EXCEEDED states
-- no repository test execution or dependency installation
-
-## Inventory and adapters implemented on current branch
-
-- deterministic path-level test inventory with explicit behavior links
-- ambiguity diagnostics instead of framework-ownership guessing
-- fail-closed inventory construction from malformed/truncated discovery
-- bounded JUnit result ingestion for pytest, Jest, Vitest, and Playwright
-- bounded JUnit/NUnit result ingestion for Pester
-- DTD/entity rejection and XML size/test-count limits
-- retry attempts preserved for later flake analysis
+- advisory test-value classification from explicit deterministic signals
+- protection-first handling so valuable flaky/security/regression tests are not discarded
+- behavior and critical-journey gap analysis bound to exact SHA/profile
+- deterministic MISSING/STALE/NOT_EVALUABLE/PROVEN semantics
+- in-memory history, duration, flake, and freshness analysis
+- retry PASS cannot erase an earlier equivalent-context failure
 
 ## Not yet implemented
 
-The following capabilities remain planned under later API-371 children and must not be
-represented as complete:
-
-- test-value, gap, flake, freshness, mutation, and quality-policy analysis
+- selective mutation/fault-injection analysis
+- final deterministic quality-policy evaluator and waiver application
 - deterministic ExecutionPlans
 - QualityReceipt generation and validation
 - GitHub Actions placement analysis
@@ -59,10 +42,9 @@ represented as complete:
 - Portfolio Graph quality export/consumer integration
 - representative real-repository qualification
 - Jenkins same-SHA cutover qualification
-- live qualification and maintenance-mode closeout
+- adversarial release qualification and maintenance-mode closeout
 
 ## Evidence semantics
 
-Passing repository tests is repository/synthetic evidence only. It is not evidence that
-Jenkins, GitHub Actions migration, Portfolio Graph consumption, or any live provider path is
-qualified.
+Passing repository/synthetic verification does not establish Jenkins, GitHub Actions migration,
+Portfolio Graph consumption, or any live provider path as qualified.
