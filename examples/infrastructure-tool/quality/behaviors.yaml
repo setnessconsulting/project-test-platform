@@ -1,0 +1,11 @@
+schema_version: "1"
+behaviors:
+  - behavior_id: runner.isolation
+    description: One job cannot retain access to another job's workspace or secrets.
+    criticality: critical
+    required_evidence: [integration, adversarial-security]
+  - behavior_id: runner.cleanup
+    description: Job resources are cleaned or quarantined after execution.
+    criticality: critical
+    required_evidence: [deterministic, integration, adversarial-security]
+critical_journeys: []
