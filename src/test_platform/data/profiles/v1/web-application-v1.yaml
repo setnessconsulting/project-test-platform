@@ -1,0 +1,36 @@
+schema_version: "1"
+profile_id: web-application-v1
+version: 1.0.0
+allowed_trust: [pr-untrusted, trusted-branch, trusted-manual, live-qualification]
+recommended_execution: [local, jenkins, github-actions]
+live_evidence_max_age_days: 30
+critical_journey_e2e_required: true
+mutation_analysis: not-applicable
+requirements:
+  - rule_id: static-verification
+    evidence_class: static
+    level: required
+    non_waivable: true
+    description: Lint, types, build, and schema checks must pass.
+  - rule_id: deterministic-domain-logic
+    evidence_class: deterministic
+    level: conditional
+    description: Domain logic that can be proven below the browser should use deterministic evidence.
+  - rule_id: integration-boundaries
+    evidence_class: integration
+    level: required
+    description: Authorization, persistence, and service boundaries require integration evidence.
+  - rule_id: critical-user-journeys
+    evidence_class: end-to-end
+    level: required
+    non_waivable: true
+    description: Declared critical user journeys require assembled browser evidence.
+  - rule_id: adversarial-web-boundaries
+    evidence_class: adversarial-security
+    level: required
+    non_waivable: true
+    description: Authorization and untrusted-input boundaries require negative evidence.
+  - rule_id: live-environment-qualification
+    evidence_class: live-qualification
+    level: conditional
+    description: Claims tied to a real external environment require bounded live evidence.

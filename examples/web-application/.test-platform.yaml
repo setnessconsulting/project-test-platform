@@ -1,0 +1,16 @@
+schema_version: "1"
+profile:
+  profile_id: web-application-v1
+  version: 1.0.0
+behaviors_path: quality/behaviors.yaml
+suites:
+  - suite_id: standard
+    entrypoint: test:standard
+    trust: pr-untrusted
+    timeout_seconds: 600
+    evidence_classes: [static, deterministic, integration]
+  - suite_id: e2e
+    entrypoint: test:e2e
+    trust: pr-untrusted
+    timeout_seconds: 900
+    evidence_classes: [end-to-end]

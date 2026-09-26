@@ -1,0 +1,11 @@
+schema_version: "1"
+behaviors:
+  - behavior_id: policy.target-binding
+    description: Approval evidence cannot be reused for a different target.
+    criticality: critical
+    required_evidence: [deterministic, adversarial-security]
+  - behavior_id: provider.partial-normalization
+    description: Partial provider evidence remains partial and cannot prove absence.
+    criticality: high
+    required_evidence: [contract]
+critical_journeys: []

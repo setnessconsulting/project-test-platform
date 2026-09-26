@@ -1,0 +1,35 @@
+schema_version: "1"
+profile_id: browser-game-v1
+version: 1.0.0
+allowed_trust: [pr-untrusted, trusted-branch, trusted-manual]
+recommended_execution: [local, jenkins, github-actions]
+live_evidence_max_age_days: null
+critical_journey_e2e_required: true
+mutation_analysis: conditional
+requirements:
+  - rule_id: static-verification
+    evidence_class: static
+    level: required
+    non_waivable: true
+    description: Lint, types, build, and content/schema checks must pass.
+  - rule_id: deterministic-game-logic
+    evidence_class: deterministic
+    level: required
+    description: Scoring, progression, rules, and state transitions require deterministic evidence.
+  - rule_id: gameplay-journeys
+    evidence_class: end-to-end
+    level: required
+    non_waivable: true
+    description: Start, interact, win or lose, restart, and other declared critical journeys require browser evidence.
+  - rule_id: integration-boundaries
+    evidence_class: integration
+    level: conditional
+    description: Host, persistence, analytics, or service boundaries require integration evidence when present.
+  - rule_id: adversarial-game-input
+    evidence_class: adversarial-security
+    level: conditional
+    description: Untrusted content, host messaging, or persistence boundaries require negative evidence when present.
+  - rule_id: performance-budget
+    evidence_class: performance
+    level: conditional
+    description: Explicit frame, load, or interaction budgets require performance evidence when declared.

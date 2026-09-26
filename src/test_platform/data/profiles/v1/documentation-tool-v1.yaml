@@ -1,0 +1,22 @@
+schema_version: "1"
+profile_id: documentation-tool-v1
+version: 1.0.0
+allowed_trust: [pr-untrusted, trusted-branch, trusted-manual]
+recommended_execution: [local, jenkins, github-actions]
+live_evidence_max_age_days: null
+critical_journey_e2e_required: false
+mutation_analysis: not-applicable
+requirements:
+  - rule_id: static-verification
+    evidence_class: static
+    level: required
+    non_waivable: true
+    description: Formatting, schema, link, and generated-artifact checks must pass.
+  - rule_id: deterministic-generation
+    evidence_class: deterministic
+    level: required
+    description: Generators, transformations, and compatibility logic require deterministic evidence.
+  - rule_id: rendered-or-consumer-smoke
+    evidence_class: end-to-end
+    level: conditional
+    description: A real consumer or rendered smoke is required when deterministic output alone cannot prove the contract.

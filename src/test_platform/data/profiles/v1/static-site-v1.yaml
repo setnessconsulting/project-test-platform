@@ -1,0 +1,22 @@
+schema_version: "1"
+profile_id: static-site-v1
+version: 1.0.0
+allowed_trust: [pr-untrusted, trusted-branch, trusted-manual]
+recommended_execution: [local, jenkins, github-actions]
+live_evidence_max_age_days: null
+critical_journey_e2e_required: false
+mutation_analysis: not-applicable
+requirements:
+  - rule_id: static-verification
+    evidence_class: static
+    level: required
+    non_waivable: true
+    description: Build, link/schema, lint, and content checks must pass.
+  - rule_id: rendered-smoke
+    evidence_class: end-to-end
+    level: conditional
+    description: Critical rendered pages or interactions require browser smoke evidence when declared.
+  - rule_id: integration-boundaries
+    evidence_class: integration
+    level: informational
+    description: External form or service integrations may require targeted integration evidence.

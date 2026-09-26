@@ -1,0 +1,16 @@
+schema_version: "1"
+profile:
+  profile_id: python-control-plane-v1
+  version: 1.0.0
+behaviors_path: quality/behaviors.yaml
+suites:
+  - suite_id: verify
+    entrypoint: verify
+    trust: pr-untrusted
+    timeout_seconds: 600
+    evidence_classes: [static, deterministic]
+  - suite_id: contract
+    entrypoint: test:contract
+    trust: pr-untrusted
+    timeout_seconds: 600
+    evidence_classes: [contract, adversarial-security]

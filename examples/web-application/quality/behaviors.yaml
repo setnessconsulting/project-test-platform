@@ -1,0 +1,15 @@
+schema_version: "1"
+behaviors:
+  - behavior_id: auth.sign-in
+    description: An authorized user can sign in and reach the application.
+    criticality: critical
+    required_evidence: [integration, end-to-end]
+  - behavior_id: workflow.complete
+    description: The user can complete the primary workflow and see the persisted result.
+    criticality: critical
+    required_evidence: [integration, end-to-end]
+critical_journeys:
+  - journey_id: user.primary-flow
+    description: Sign in and complete the primary persisted workflow.
+    behavior_ids: [auth.sign-in, workflow.complete]
+    required_evidence: [end-to-end]

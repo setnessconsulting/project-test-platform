@@ -11,6 +11,7 @@ from test_platform.canonical import semantic_hash
 from test_platform.contracts import (
     EvidenceClass,
     ExecutionPlan,
+    ExecutionTarget,
     ExecutionTrustClass,
     ProfileBinding,
     ProfileRequirement,
@@ -43,6 +44,9 @@ def _profile() -> QualityProfile:
                 description="Critical journeys require assembled E2E evidence.",
             ),
         ),
+        allowed_trust=(ExecutionTrustClass.PR_UNTRUSTED,),
+        recommended_execution=(ExecutionTarget.JENKINS,),
+        critical_journey_e2e_required=True,
     )
 
 
