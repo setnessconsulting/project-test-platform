@@ -39,9 +39,7 @@ def _usable_waiver(
         raise QualityEvaluationError("wildcard waiver scopes are prohibited")
     if waiver.rule_id != rule_id or waiver.scope != expected_scope:
         return False
-    if waiver.expires_at is not None and waiver.expires_at <= now:
-        return False
-    return True
+    return waiver.expires_at is None or waiver.expires_at > now
 
 
 def _blocking_gap_result(gaps: tuple[GapFinding, ...]) -> QualityResult | None:
@@ -72,10 +70,7 @@ def evaluate_quality(
     applied_waivers: set[str] = set()
     synthetic_gaps: list[GapFinding] = list(behavior_gaps)
 
-    if blocked_reasons:
-        result = QualityResult.BLOCKED
-    else:
-        result = QualityResult.PASS
+    result = QualityResult.BLOCKED if blocked_reasons else QualityResult.PASS
 
     for requirement in profile.requirements:
         if requirement.level in {
