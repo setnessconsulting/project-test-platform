@@ -2,7 +2,7 @@
 
 ## Repository state
 
-Implementation foundation in progress on API-372.
+API-372 foundation is complete. API-373 architecture authority/evidence boundaries are implemented on this branch.
 
 ## Implemented
 
