@@ -121,7 +121,10 @@ def classify_test_value(
         return _finding(
             test,
             TestValueClassification.TRIVIAL,
-            ("test has no declared behavior link and reviewed evidence marks its assertion trivial",),
+            (
+                "test has no declared behavior link and reviewed evidence "
+                "marks its assertion trivial",
+            ),
             evidence_ids,
         )
 
