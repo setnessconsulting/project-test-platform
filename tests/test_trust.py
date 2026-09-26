@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from test_platform.contracts import ExecutionTrustClass, TrustCapability
+from test_platform.contracts import (
+    EvidenceClass,
+    ExecutionTrustClass,
+    TrustCapability,
+)
 from test_platform.trust import (
     TrustPolicyError,
     evaluate_capabilities,
+    require_evidence_allowed_for_trust,
     require_live_qualification_context,
 )
 
@@ -52,3 +57,18 @@ def test_live_qualification_requires_exact_sha_target_and_owner_approval() -> No
             target="fixture:test",
             owner_approved=False,
         )
+
+
+def test_lower_trust_cannot_claim_live_qualification_evidence() -> None:
+    with pytest.raises(TrustPolicyError, match="live-qualification evidence"):
+        require_evidence_allowed_for_trust(
+            ExecutionTrustClass.PR_UNTRUSTED,
+            (EvidenceClass.STATIC, EvidenceClass.LIVE),
+        )
+
+
+def test_live_trust_can_claim_live_qualification_evidence() -> None:
+    require_evidence_allowed_for_trust(
+        ExecutionTrustClass.LIVE_QUALIFICATION,
+        (EvidenceClass.LIVE,),
+    )
