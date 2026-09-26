@@ -57,7 +57,7 @@ class FrameworkPlugin(Protocol):
     framework_id: str
     adapter_version: str
 
-    def discover(self, index: "RepositoryIndex") -> FrameworkDiscovery:
+    def discover(self, index: RepositoryIndex) -> FrameworkDiscovery:
         """Return deterministic discovery state for this framework."""
 
 
@@ -83,7 +83,7 @@ class RepositoryIndex:
         cls,
         root: Path,
         limits: DiscoveryLimits | None = None,
-    ) -> "RepositoryIndex":
+    ) -> RepositoryIndex:
         """Index one explicit repository-like root without following symlinks."""
         limits = limits or DiscoveryLimits()
         root = root.resolve()
