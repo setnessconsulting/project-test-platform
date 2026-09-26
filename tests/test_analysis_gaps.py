@@ -4,8 +4,8 @@ from test_platform.analysis import BehaviorEvidenceObservation, analyze_behavior
 from test_platform.contracts import (
     Behavior,
     BehaviorDocument,
-    CriticalJourney,
     Criticality,
+    CriticalJourney,
     EvidenceClass,
     EvidenceState,
     ProfileBinding,
