@@ -1,0 +1,36 @@
+schema_version: "1"
+profile_id: typescript-control-plane-v1
+version: 1.0.0
+allowed_trust: [pr-untrusted, trusted-branch, trusted-manual, live-qualification]
+recommended_execution: [local, jenkins, github-actions]
+live_evidence_max_age_days: 30
+critical_journey_e2e_required: false
+mutation_analysis: conditional
+requirements:
+  - rule_id: static-verification
+    evidence_class: static
+    level: required
+    non_waivable: true
+    description: Package, lint, type, schema, and build checks must pass.
+  - rule_id: deterministic-invariants
+    evidence_class: deterministic
+    level: required
+    description: Policy, routing, validation, and state invariants require deterministic evidence.
+  - rule_id: provider-contracts
+    evidence_class: contract
+    level: required
+    description: Public/provider boundaries require contract evidence.
+  - rule_id: integration-paths
+    evidence_class: integration
+    level: conditional
+    description: Multi-component behavior requires integration evidence when applicable.
+  - rule_id: adversarial-boundaries
+    evidence_class: adversarial-security
+    level: required
+    non_waivable: true
+    description: Trust and provider boundaries require negative evidence.
+  - rule_id: live-provider-qualification
+    evidence_class: live-qualification
+    level: conditional
+    non_waivable: true
+    description: Real provider claims require bounded live qualification.
