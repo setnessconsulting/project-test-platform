@@ -59,7 +59,9 @@ def load_manifest(path: Path) -> RepositoryManifest:
     try:
         data = parse_yaml_mapping(path.read_text(encoding="utf-8"), source=str(path))
         manifest = RepositoryManifest.model_validate(data)
-    except (OSError, ValidationError, YamlContractError) as exc:
+    except YamlContractError as exc:
+        raise ManifestError(str(exc)) from exc
+    except (OSError, ValidationError) as exc:
         raise ManifestError(f"invalid repository manifest: {path}") from exc
 
     _validate_relative_path(manifest.behaviors_path, field="behaviors_path")
