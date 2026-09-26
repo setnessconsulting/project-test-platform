@@ -69,9 +69,7 @@ def _required_profile_evidence(
 ) -> set[EvidenceClass]:
     required: set[EvidenceClass] = set()
     for requirement in profile.requirements:
-        if requirement.level is RequirementLevel.REQUIRED:
-            required.add(requirement.evidence_class)
-        elif (
+        if requirement.level is RequirementLevel.REQUIRED or (
             requirement.level is RequirementLevel.CONDITIONAL
             and requirement.rule_id in applicable_conditional_rules
         ):
