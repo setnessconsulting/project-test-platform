@@ -7,7 +7,7 @@ import tomllib
 from dataclasses import dataclass
 
 from test_platform.contracts import DiscoveryState, FrameworkDiscovery
-from test_platform.discovery.core import RepositoryIndex
+from test_platform.discovery.core import FrameworkPlugin, RepositoryIndex
 
 
 def _sorted_unique(values: list[str]) -> tuple[str, ...]:
@@ -201,7 +201,7 @@ def _looks_like_node_test(path: str, framework: str) -> bool:
     )
 
 
-def builtin_plugins() -> tuple[object, ...]:
+def builtin_plugins() -> tuple[FrameworkPlugin, ...]:
     """Return the deterministic built-in discovery plugin set."""
     return (
         NodeFrameworkDiscoveryPlugin(
