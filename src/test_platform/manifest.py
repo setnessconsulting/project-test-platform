@@ -25,10 +25,30 @@ def _validate_relative_path(value: str, *, field: str) -> None:
         raise ManifestError(f"{field} must be a bounded relative repository path")
 
 
+def _validate_repo_child(root: Path, relative: str, *, field: str) -> None:
+    """Reject symlink/path escapes for a declared repository-local path."""
+    root_resolved = root.resolve()
+    candidate = root / Path(*PurePosixPath(relative).parts)
+    try:
+        resolved = candidate.resolve(strict=False)
+    except OSError as exc:
+        raise ManifestError(f"{field} cannot be resolved safely") from exc
+    if not resolved.is_relative_to(root_resolved):
+        raise ManifestError(f"{field} resolves outside the repository root")
+
+    current = root_resolved
+    for part in PurePosixPath(relative).parts:
+        current = current / part
+        if current.is_symlink():
+            raise ManifestError(f"{field} must not traverse a symlink")
+
+
 def load_manifest(path: Path) -> RepositoryManifest:
     """Load and validate the root .test-platform.yaml contract."""
     if path.name != ".test-platform.yaml":
         raise ManifestError("manifest filename must be .test-platform.yaml")
+    if path.is_symlink():
+        raise ManifestError("manifest must not be a symlink")
     try:
         size = path.stat().st_size
     except OSError as exc:
@@ -43,6 +63,7 @@ def load_manifest(path: Path) -> RepositoryManifest:
         raise ManifestError(f"invalid repository manifest: {path}") from exc
 
     _validate_relative_path(manifest.behaviors_path, field="behaviors_path")
+    _validate_repo_child(path.parent, manifest.behaviors_path, field="behaviors_path")
 
     try:
         profile = load_profile(manifest.profile.profile_id)
