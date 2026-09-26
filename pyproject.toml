@@ -12,6 +12,7 @@ license = { text = "Proprietary" }
 authors = [{ name = "Setness Consulting" }]
 dependencies = [
   "pydantic>=2.13.4,<2.14",
+  "PyYAML>=6.0.2,<7",
 ]
 
 [project.optional-dependencies]
