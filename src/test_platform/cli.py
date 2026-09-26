@@ -292,9 +292,11 @@ def _inventory_payload(args: argparse.Namespace) -> dict[str, Any]:
 
 def _dispatch(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if args.command == "doctor":
-        report = run_doctor()
-        payload = report.as_dict()
-        return (0 if report.overall == "PASS" else 1), payload
+        doctor_report = run_doctor()
+        doctor_payload = doctor_report.as_dict()
+        return (
+            0 if doctor_report.overall == "PASS" else 1
+        ), doctor_payload
 
     if args.command == "validate":
         return 0, _context_payload(args)
@@ -310,19 +312,21 @@ def _dispatch(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         }
 
     if args.command == "audit":
-        payload = _inventory_payload(args)
-        payload["audit_state"] = "not-evaluable"
-        payload["audit_reason"] = (
+        audit_payload = _inventory_payload(args)
+        audit_payload["audit_state"] = "not-evaluable"
+        audit_payload["audit_reason"] = (
             "offline audit does not synthesize execution or live qualification evidence"
         )
-        return 0, payload
+        return 0, audit_payload
 
     if args.command == "gaps":
         context = load_repository_context(args.repo)
-        observations = parse_behavior_evidence(load_json_file(args.evidence))
+        behavior_observations = parse_behavior_evidence(
+            load_json_file(args.evidence)
+        )
         findings = analyze_gaps_from_context(
             context,
-            observations,
+            behavior_observations,
             sha=args.sha,
         )
         return 0, {
@@ -362,7 +366,7 @@ def _dispatch(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
 
     if args.command == "evaluate":
         context = load_repository_context(args.repo)
-        assessment = evaluate_from_context(
+        quality_assessment = evaluate_from_context(
             context,
             repository=args.repository,
             sha=args.sha,
@@ -373,26 +377,32 @@ def _dispatch(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             blocked_reasons=tuple(args.blocked_reason),
             now=_iso_datetime(args.now),
         )
-        exit_code = 0 if assessment.result is QualityResult.PASS else 1
+        exit_code = (
+            0 if quality_assessment.result is QualityResult.PASS else 1
+        )
         return exit_code, {
-            "assessment": assessment.model_dump(mode="json"),
+            "assessment": quality_assessment.model_dump(mode="json"),
         }
 
     if args.command in {"actions", "migration-plan"}:
-        observations = parse_workflow_observations(load_json_file(args.input))
-        report = actions_report(observations)
+        workflow_observations = parse_workflow_observations(
+            load_json_file(args.input)
+        )
+        placement_report = actions_report(workflow_observations)
         decisions = [
             item.model_dump(mode="json")
-            for item in report.decisions
+            for item in placement_report.decisions
         ]
-        payload: dict[str, Any] = {
+        placement_payload: dict[str, Any] = {
             "decisions": decisions,
-            "hosted_verification_minutes": report.hosted_verification_minutes,
-            "hosted_deployment_minutes": report.hosted_deployment_minutes,
-            "candidate_moved_minutes": report.candidate_moved_minutes,
+            "hosted_verification_minutes": (
+                placement_report.hosted_verification_minutes
+            ),
+            "hosted_deployment_minutes": placement_report.hosted_deployment_minutes,
+            "candidate_moved_minutes": placement_report.candidate_moved_minutes,
         }
         if args.command == "migration-plan":
-            payload["migration_candidates"] = [
+            placement_payload["migration_candidates"] = [
                 item
                 for item in decisions
                 if item["placement"] in {
@@ -400,30 +410,37 @@ def _dispatch(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
                     "remove-duplicate",
                 }
             ]
-            payload["mutation_performed"] = False
-        return 0, payload
+            placement_payload["mutation_performed"] = False
+        return 0, placement_payload
 
     if args.command == "report":
-        payload = _inventory_payload(args)
+        report_payload = _inventory_payload(args)
         raw_assessment = _optional_json(args.assessment)
         if raw_assessment is None:
-            payload["quality"] = {
+            report_payload["quality"] = {
                 "result": "not-evaluable",
                 "reason": "no QualityAssessment was supplied",
             }
         else:
-            assessment = parse_quality_assessment(raw_assessment)
-            if assessment.repository != args.repository or assessment.sha != args.sha:
-                raise ValueError("assessment repository/SHA does not match report target")
-            payload["quality"] = assessment.model_dump(mode="json")
-        return 0, payload
+            report_assessment = parse_quality_assessment(raw_assessment)
+            if (
+                report_assessment.repository != args.repository
+                or report_assessment.sha != args.sha
+            ):
+                raise ValueError(
+                    "assessment repository/SHA does not match report target"
+                )
+            report_payload["quality"] = report_assessment.model_dump(mode="json")
+        return 0, report_payload
 
     if args.command == "portfolio-export":
         context = load_repository_context(args.repo)
-        assessment = parse_quality_assessment(load_json_file(args.assessment))
+        export_assessment = parse_quality_assessment(
+            load_json_file(args.assessment)
+        )
         receipt_ids = parse_receipt_ids(_optional_json(args.receipt_ids))
         export = build_quality_export(
-            assessment,
+            export_assessment,
             context.behaviors,
             receipt_ids=receipt_ids,
             generated_at=_iso_datetime(args.generated_at),
@@ -433,14 +450,14 @@ def _dispatch(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     if args.command == "guide":
         context = load_repository_context(args.repo)
         inventory = parse_test_inventory(load_json_file(args.inventory))
-        gaps = parse_gap_findings(load_json_file(args.gaps))
+        guidance_gaps = parse_gap_findings(load_json_file(args.gaps))
         guidance = generate_agent_guidance(
             manifest=context.manifest,
             profile=context.profile,
             behaviors=context.behaviors,
             inventory=inventory,
             affected_behavior_ids=tuple(args.affected_behavior),
-            gap_findings=gaps,
+            gap_findings=guidance_gaps,
         )
         return 0, {"guidance": guidance.model_dump(mode="json")}
 
