@@ -44,7 +44,8 @@ class ParsedTestResults:
 
     @property
     def aggregate_result(self) -> QualityResult:
-        if any(item.state in {TestCaseResultState.FAIL, TestCaseResultState.ERROR} for item in self.tests):
+        failing = {TestCaseResultState.FAIL, TestCaseResultState.ERROR}
+        if any(item.state in failing for item in self.tests):
             return QualityResult.FAIL
         return QualityResult.PASS
 
@@ -83,7 +84,10 @@ def _stable_case_id(framework: str, classname: str | None, name: str | None) -> 
     return f"{framework}:{candidate}"
 
 
-def _attempts(results: list[tuple[str, TestCaseResultState, float, str | None]], framework: str) -> tuple[AdapterTestResult, ...]:
+def _attempts(
+    results: list[tuple[str, TestCaseResultState, float, str | None]],
+    framework: str,
+) -> tuple[AdapterTestResult, ...]:
     counts: dict[str, int] = {}
     normalized: list[AdapterTestResult] = []
     for test_id, state, duration, message in results:
