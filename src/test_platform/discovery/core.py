@@ -54,8 +54,13 @@ class DiscoveryError(ValueError):
 class FrameworkPlugin(Protocol):
     """Versioned framework discovery plugin contract."""
 
-    framework_id: str
-    adapter_version: str
+    @property
+    def framework_id(self) -> str:
+        """Stable framework identifier."""
+
+    @property
+    def adapter_version(self) -> str:
+        """Version of the discovery adapter contract."""
 
     def discover(self, index: RepositoryIndex) -> FrameworkDiscovery:
         """Return deterministic discovery state for this framework."""
@@ -217,6 +222,8 @@ class PluginRegistry:
         detected = tuple(
             item for item in observations if item.state is not DiscoveryState.UNKNOWN
         )
+
+        diagnostics: tuple[str, ...]
 
         if index.truncated:
             state = DiscoveryState.LIMIT_EXCEEDED
