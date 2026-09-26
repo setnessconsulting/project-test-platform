@@ -2,39 +2,40 @@
 
 ## Repository state
 
-API-372 through API-383 are implemented through the current analysis branch, except API-384/API-385
-which remain the next analysis/evaluator slices. API-386 execution trust policy is complete.
+API-372 through API-386 are implemented through the current evaluator branch, except later
+execution/evidence/CI integration issues beginning with API-387.
 
-## Implemented
+## Implemented foundation and policy
 
-- Python 3.12+ package and console entry point
-- bounded credential-free doctor and canonical clean-room verification
-- high-confidence public-safety scanner and public repository boundary
-- versioned public contracts and generated schema bundle
+- Python 3.12+ public-safe package and CLI foundation
+- public-safety scanner and canonical clean-room verification
+- strict versioned public contracts and generated JSON Schema
 - eight explicit Quality Profiles
-- strict .test-platform.yaml manifest parsing and profile binding
-- repository-local behavior and critical-journey declarations
+- repository manifest, behavior, and critical-journey contracts
 - execution trust classes and live-qualification gates
-- bounded deterministic test-framework discovery
+
+## Implemented discovery and evidence intake
+
+- bounded deterministic pytest/Jest/Vitest/Playwright/Pester discovery
 - normalized test inventory with explicit behavior links
-- bounded pytest/Jest/Vitest/Playwright/Pester JUnit/NUnit result adapters
-- retry-attempt preservation and hostile XML rejection
+- bounded JUnit/NUnit result adapters
+- hostile XML rejection, result-size bounds, and retry-attempt preservation
 
-## Analysis implemented on current branch
+## Implemented deterministic analysis
 
-- advisory test-value classification from explicit deterministic signals
-- protection-first handling so valuable flaky/security/regression tests are not discarded
+- advisory test-value analysis from explicit evidence signals
 - behavior and critical-journey gap analysis bound to exact SHA/profile
-- deterministic MISSING/STALE/NOT_EVALUABLE/PROVEN semantics
-- in-memory history, duration, flake, and freshness analysis
-- retry PASS cannot erase an earlier equivalent-context failure
+- test history, duration, flake, and freshness analysis
+- selective profile-driven mutation/fault evidence with cost limits
+- deterministic quality evaluator with PASS/FAIL/NOT_EVALUABLE/BLOCKED semantics
+- exact repository/profile-version waiver scope
+- wildcard, expired, stale-profile, non-waivable, and not-evaluable waiver protections
+- no numerical quality score and no opaque AI quality gate
 
 ## Not yet implemented
 
-- selective mutation/fault-injection analysis
-- final deterministic quality-policy evaluator and waiver application
 - deterministic ExecutionPlans
-- QualityReceipt generation and validation
+- QualityReceipt generation/validation and replay protection
 - GitHub Actions placement analysis
 - Jenkins execution integration
 - stable full CLI/reporting surface
@@ -42,7 +43,7 @@ which remain the next analysis/evaluator slices. API-386 execution trust policy 
 - Portfolio Graph quality export/consumer integration
 - representative real-repository qualification
 - Jenkins same-SHA cutover qualification
-- adversarial release qualification and maintenance-mode closeout
+- final adversarial release qualification and maintenance-mode closeout
 
 ## Evidence semantics
 
