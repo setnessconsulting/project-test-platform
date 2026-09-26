@@ -18,6 +18,7 @@ def main() -> int:
     commands: tuple[tuple[str, ...], ...] = (
         (python, "-m", "compileall", "-q", "src", "tests"),
         (python, "-m", "test_platform.public_safety", "."),
+        (python, "-m", "test_platform.schema_registry", "--check"),
         (python, "-m", "ruff", "check", "."),
         (python, "-m", "mypy", "src/test_platform"),
         (python, "-m", "pytest"),
