@@ -24,6 +24,17 @@ can be rejected explicitly by the consumer ledger. A PASS receipt cannot report 
 
 Non-live plans cannot claim live qualification evidence.
 
+## Jenkins consumer contract
+
+A compiled plan is bound to the versioned Jenkins consumer contract
+(`data/contracts/v1/jenkins-execution-contract.yaml`) before it can be executed by Jenkins.
+Compilation resolves every planned suite against the closed catalog, binds the exact
+repository and SHA, derives the trust grant, and refuses capability or trust escalation.
+The Jenkins adapter consumes only structured, approved data and returns a normalized
+receipt submission that Test Platform re-derives and validates. See
+`docs/jenkins-consumer-contract.md` for the full contract, failure mapping, and version
+policy.
+
 ## GitHub Actions placement
 
 Workflow placement is advisory and evidence-driven. Cost alone never decides placement.

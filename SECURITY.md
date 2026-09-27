@@ -21,6 +21,17 @@ Repository files, manifests, test names, test output, pull-request content, resu
 and executor output are untrusted data. They must not be allowed to choose credentials,
 expand authority, mutate policy, or configure trusted Jenkins controller behavior.
 
+## Jenkins consumer contract invariants
+
+The Jenkins consumer contract fails closed on: repository mismatch, SHA mismatch, plan
+identity mismatch, unsupported plan or receipt schema versions, trust escalation, unapproved
+executors, suites, entrypoints, capabilities, or evidence classes, oversized artifact or
+evidence declarations, and stale-head execution presented as current-head evidence. The
+normalized result table is owned by Test Platform and shipped inside every request, so an
+executor or agent failure can never be turned into a pass. Receipt identity is re-derived
+by Test Platform on ingestion, so a forged or replayed receipt fails. Synthetic fixture
+evidence is always labelled synthetic and can never be mistaken for live qualification.
+
 ## Secret and path scanning
 
 The repository includes a small deterministic high-confidence public-safety scanner. It is

@@ -43,6 +43,8 @@ bounded contracts.
 - adapters: framework and executor integration adapters
 - analysis: deterministic value, gap, flake, and policy analysis
 - planning: deterministic ExecutionPlan compilation
+- integration: the versioned Jenkins consumer contract (catalog, request
+  compilation, outcome mapping, receipt ingestion, synthetic qualification)
 - evidence: normalized QualityReceipt and evidence handling
 - reporting: public-safe human and machine output
 

@@ -424,6 +424,390 @@ class Diagnostic(ContractModel):
     evidence_ids: tuple[str, ...] = ()
 
 
+# --- Jenkins consumer integration contract (API-390) -------------------------
+#
+# Test Platform owns every model in this block. project-jenkins carries only a
+# minimal generated/versioned consumer representation of these documents; it
+# must not reimplement them or reinterpret their semantics.
+
+
+JENKINS_CONTRACT_ID = "jenkins-execution-contract"
+
+
+class ExecutorCapability(StrEnum):
+    """Bounded capability a centrally configured executor image must provide."""
+
+    DOCKER = "docker"
+    NODE_22 = "node-22"
+    NODE_24 = "node-24"
+    PLAYWRIGHT_CHROMIUM = "playwright-chromium"
+    NETWORK_ISOLATED = "network-isolated"
+    PRIVATE_EVIDENCE_STORE = "private-evidence-store"
+
+
+class ArtifactKind(StrEnum):
+    """Bounded artifact classes an executor may declare and hand off."""
+
+    LOG = "log"
+    JUNIT_XML = "junit-xml"
+    RESULT_JSON = "result-json"
+    COVERAGE = "coverage"
+    SCREENSHOT = "screenshot"
+
+
+class EvidenceOrigin(StrEnum):
+    """Where the evidence that produced a receipt actually came from."""
+
+    SYNTHETIC = "synthetic"
+    CONTROLLER_RECORDED = "controller-recorded"
+    LIVE = "live"
+
+
+class JenkinsExecutionMode(StrEnum):
+    """Whether a submission came from a local harness or a real controller run."""
+
+    SYNTHETIC_QUALIFICATION = "synthetic-qualification"
+    CONTROLLER_EXECUTION = "controller-execution"
+
+
+class JenkinsExecutionStatus(StrEnum):
+    """Normalized Jenkins adapter outcome vocabulary."""
+
+    PASSED = "passed"
+    FAILED = "failed"
+    AGENT_UNAVAILABLE = "agent-unavailable"
+    CONTROLLER_UNAVAILABLE = "controller-unavailable"
+    TIMED_OUT = "timed-out"
+    CANCELLED = "cancelled"
+    STALE_HEAD = "stale-head"
+    CHECKOUT_SHA_MISMATCH = "checkout-sha-mismatch"
+    UNSUPPORTED_CAPABILITY = "unsupported-capability"
+    REJECTED_TRUST = "rejected-trust"
+    MALFORMED_RESULT = "malformed-result"
+
+
+class StaleHeadOutcome(StrEnum):
+    """Permitted normalized result when a plan requires current-head binding."""
+
+    BLOCKED = "blocked"
+    NOT_EVALUABLE = "not-evaluable"
+
+
+_SAFE_REPOSITORY = r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9._-]{1,100}$"
+_SAFE_ARTIFACT_PATH = r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$"
+
+
+class JenkinsContractLimits(ContractModel):
+    """Hard upper bounds applied to every consumer request and submission."""
+
+    max_suites: int = Field(ge=1, le=256)
+    max_artifacts_per_suite: int = Field(ge=0, le=64)
+    max_artifact_bytes: int = Field(ge=1, le=1_073_741_824)
+    max_evidence_references_per_suite: int = Field(ge=0, le=64)
+    max_diagnostics_per_outcome: int = Field(ge=0, le=32)
+    max_diagnostic_message_length: int = Field(ge=1, le=2_048)
+    max_suite_timeout_seconds: int = Field(ge=1, le=86_400)
+    max_execution_seconds: int = Field(ge=1, le=604_800)
+
+
+class JenkinsExecutorBinding(ContractModel):
+    """A centrally configured executor identity and its hard capability ceiling.
+
+    Executor identifiers are closed identifiers, never commands. A target
+    repository cannot add, widen, or re-point an entry in this catalog.
+    """
+
+    executor_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+    capabilities: tuple[ExecutorCapability, ...] = Field(min_length=1)
+    max_trust: ExecutionTrustClass
+    agent_class: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9-]{0,63}$")
+
+    @model_validator(mode="after")
+    def validate_capabilities(self) -> Self:
+        """Reject repeated capabilities so ceilings stay unambiguous."""
+        if len(self.capabilities) != len(set(self.capabilities)):
+            raise ValueError("executor capabilities must be unique")
+        return self
+
+
+class JenkinsArtifactDeclaration(ContractModel):
+    """One bounded, relative artifact a suite is permitted to hand off."""
+
+    artifact_id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+    kind: ArtifactKind
+    path: str = Field(min_length=1, max_length=128, pattern=_SAFE_ARTIFACT_PATH)
+    max_bytes: int = Field(ge=1, le=1_073_741_824)
+    live: bool = False
+    evidence_class: EvidenceClass
+
+    @model_validator(mode="after")
+    def validate_relative_path(self) -> Self:
+        """Reject traversal, absolute, and symlink-shaped artifact paths."""
+        segments = self.path.split("/")
+        if any(segment in {"", ".", ".."} for segment in segments):
+            raise ValueError("artifact path must be a bounded relative path")
+        return self
+
+
+class JenkinsSuiteBinding(ContractModel):
+    """Approved mapping from a declared suite to a closed executor entrypoint.
+
+    The entrypoint is a catalog identifier resolved by centrally maintained
+    Jenkins logic. It is never a shell string supplied by a target repository,
+    and a plan whose declared entrypoint differs from the catalog is rejected.
+    """
+
+    suite_id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
+    entrypoint: str = Field(
+        min_length=1,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+    )
+    executor_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+    required_capabilities: tuple[ExecutorCapability, ...] = ()
+    evidence_classes: tuple[EvidenceClass, ...] = Field(min_length=1)
+    timeout_seconds: int = Field(default=600, ge=1, le=86_400)
+    artifacts: tuple[JenkinsArtifactDeclaration, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_artifacts(self) -> Self:
+        """Require unique bounded artifact identities and declarations."""
+        artifact_ids = [artifact.artifact_id for artifact in self.artifacts]
+        if len(artifact_ids) != len(set(artifact_ids)):
+            raise ValueError("suite artifact identities must be unique")
+        paths = [artifact.path for artifact in self.artifacts]
+        if len(paths) != len(set(paths)):
+            raise ValueError("suite artifact paths must be unique")
+        return self
+
+
+class JenkinsConsumerContract(ContractModel):
+    """Canonical, versioned Jenkins consumer contract owned by Test Platform."""
+
+    schema_version: Literal["1"] = "1"
+    contract_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+    contract_version: str = Field(min_length=1, pattern=r"^\d+\.\d+\.\d+$")
+    plan_schema_versions: tuple[str, ...] = Field(min_length=1)
+    receipt_schema_versions: tuple[str, ...] = Field(min_length=1)
+    repositories: tuple[str, ...] = ()
+    executors: tuple[JenkinsExecutorBinding, ...] = Field(min_length=1)
+    suites: tuple[JenkinsSuiteBinding, ...] = Field(min_length=1)
+    limits: JenkinsContractLimits
+
+    @model_validator(mode="after")
+    def validate_catalog(self) -> Self:
+        """Require closed, unique executor/suite identities and resolvable refs."""
+        executor_ids = [executor.executor_id for executor in self.executors]
+        if len(executor_ids) != len(set(executor_ids)):
+            raise ValueError("executor identities must be unique")
+        suite_ids = [suite.suite_id for suite in self.suites]
+        if len(suite_ids) != len(set(suite_ids)):
+            raise ValueError("suite identities must be unique")
+        known_executors = set(executor_ids)
+        for suite in self.suites:
+            if suite.executor_id not in known_executors:
+                raise ValueError(
+                    f"suite {suite.suite_id} references unknown executor "
+                    f"{suite.executor_id}"
+                )
+            if len(suite.evidence_classes) != len(set(suite.evidence_classes)):
+                raise ValueError(f"suite {suite.suite_id} repeats an evidence class")
+            if len(suite.artifacts) > self.limits.max_artifacts_per_suite:
+                raise ValueError(
+                    f"suite {suite.suite_id} exceeds the declared artifact bound"
+                )
+            if suite.timeout_seconds > self.limits.max_suite_timeout_seconds:
+                raise ValueError(
+                    f"suite {suite.suite_id} exceeds the declared timeout bound"
+                )
+            for artifact in suite.artifacts:
+                if artifact.max_bytes > self.limits.max_artifact_bytes:
+                    raise ValueError(
+                        f"suite {suite.suite_id} artifact {artifact.artifact_id} "
+                        "exceeds the declared artifact byte bound"
+                    )
+        return self
+
+
+class JenkinsCancellationPolicy(ContractModel):
+    """Bounded cancellation semantics the consumer must honour."""
+
+    cancel_on_superseded_head: bool = True
+    cancel_on_newer_plan: bool = True
+    abandon_workspace_on_cancel: bool = True
+
+
+class JenkinsStaleHeadPolicy(ContractModel):
+    """Bounded stale-head semantics; stale execution can never become a pass."""
+
+    require_current_head: bool = True
+    on_stale_head: StaleHeadOutcome = StaleHeadOutcome.BLOCKED
+    max_head_age_seconds: int = Field(default=3_600, ge=0, le=604_800)
+
+
+class JenkinsOutcomeResultRule(ContractModel):
+    """Test Platform-owned mapping from adapter status to normalized result.
+
+    The consumer applies this table verbatim. It never chooses a result itself,
+    so an executor can never turn an infrastructure failure into a pass.
+    """
+
+    status: JenkinsExecutionStatus
+    result: QualityResult
+
+    @model_validator(mode="after")
+    def validate_mapping(self) -> Self:
+        """Keep infrastructure and malformed states out of the pass vocabulary."""
+        if self.status is not JenkinsExecutionStatus.PASSED and self.result in {
+            QualityResult.PASS,
+        }:
+            raise ValueError("only a passed status may map to a pass result")
+        if (
+            self.status is JenkinsExecutionStatus.FAILED
+            and self.result is not QualityResult.FAIL
+        ):
+            raise ValueError("a failed status must map to a fail result")
+        return self
+
+
+class JenkinsExpectedHead(ContractModel):
+    """Exact repository/SHA binding a consumer must verify before execution."""
+
+    repository: str = Field(min_length=1, max_length=140, pattern=_SAFE_REPOSITORY)
+    sha: str = Field(min_length=40, max_length=64, pattern=r"^[0-9a-f]{40,64}$")
+
+
+class JenkinsTrustGrant(ContractModel):
+    """Maximum capability set the consumer may grant for this plan."""
+
+    trust: ExecutionTrustClass
+    capabilities: tuple[TrustCapability, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_grant(self) -> Self:
+        """Require an unambiguous, duplicate-free capability grant."""
+        if len(self.capabilities) != len(set(self.capabilities)):
+            raise ValueError("trust grant capabilities must be unique")
+        return self
+
+
+class JenkinsExecutionRequest(ContractModel):
+    """The complete, versioned document a Jenkins adapter consumes.
+
+    It carries only structured, centrally approved data: a canonical
+    ExecutionPlan plus the resolved executor mapping, capability ceiling,
+    artifact declarations, and cancellation/stale-head semantics.
+    """
+
+    schema_version: Literal["1"] = "1"
+    contract_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+    contract_version: str = Field(min_length=1, pattern=r"^\d+\.\d+\.\d+$")
+    plan_schema_version: str = Field(min_length=1)
+    policy_version: str = Field(min_length=1)
+    execution_mode: JenkinsExecutionMode
+    head: JenkinsExpectedHead
+    plan: ExecutionPlan
+    trust_grant: JenkinsTrustGrant
+    suites: tuple[JenkinsSuiteBinding, ...] = Field(min_length=1)
+    required_capabilities: tuple[ExecutorCapability, ...] = ()
+    result_mapping: tuple[JenkinsOutcomeResultRule, ...] = Field(min_length=1)
+    cancellation: JenkinsCancellationPolicy = JenkinsCancellationPolicy()
+    stale_head: JenkinsStaleHeadPolicy = JenkinsStaleHeadPolicy()
+    max_execution_seconds: int = Field(default=7_200, ge=1, le=604_800)
+
+    @model_validator(mode="after")
+    def validate_request(self) -> Self:
+        """Fail closed on head, trust, and mapping divergence from the plan."""
+        if self.plan.schema_version != self.plan_schema_version:
+            raise ValueError("request plan schema version does not match the plan")
+        if self.head.repository != self.plan.repository:
+            raise ValueError("request head repository does not match the plan")
+        if self.head.sha != self.plan.sha:
+            raise ValueError("request head SHA does not match the plan")
+        if self.trust_grant.trust is not self.plan.trust:
+            raise ValueError("trust grant does not match the plan trust class")
+        if len(self.suites) != len(self.plan.suites):
+            raise ValueError("request suite bindings must cover the planned suites")
+        if [suite.suite_id for suite in self.suites] != [
+            suite.suite_id for suite in self.plan.suites
+        ]:
+            raise ValueError("request suite bindings must follow the planned order")
+        statuses = [rule.status for rule in self.result_mapping]
+        if len(statuses) != len(set(statuses)):
+            raise ValueError("result mapping statuses must be unique")
+        if JenkinsExecutionStatus.PASSED not in statuses:
+            raise ValueError("result mapping must cover a passed status")
+        if len(self.suites) > 256:
+            raise ValueError("request exceeds the bounded suite count")
+        return self
+
+    def result_for(self, status: JenkinsExecutionStatus) -> QualityResult:
+        """Return the Test Platform-owned normalized result for a status."""
+        for rule in self.result_mapping:
+            if rule.status is status:
+                return rule.result
+        raise ValueError(f"no normalized result is defined for {status.value}")
+
+
+class JenkinsDiagnostic(ContractModel):
+    """One bounded, non-authoritative consumer diagnostic."""
+
+    code: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+    severity: DiagnosticSeverity
+    message: str = Field(min_length=1, max_length=2_048)
+
+
+class JenkinsObservedHead(ContractModel):
+    """The repository/SHA the consumer actually observed at execution time."""
+
+    repository: str = Field(min_length=1, max_length=140, pattern=_SAFE_REPOSITORY)
+    sha: str = Field(min_length=40, max_length=64, pattern=r"^[0-9a-f]{40,64}$")
+
+
+class JenkinsSuiteOutcome(ContractModel):
+    """Normalized per-suite consumer outcome carrying a canonical receipt."""
+
+    schema_version: Literal["1"] = "1"
+    suite_id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
+    executor_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+    status: JenkinsExecutionStatus
+    observed_head: JenkinsObservedHead
+    receipt: QualityReceipt
+    diagnostics: tuple[JenkinsDiagnostic, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_outcome(self) -> Self:
+        """Require the receipt to agree with the reported suite and executor."""
+        if self.receipt.suite_id != self.suite_id:
+            raise ValueError("receipt suite identity does not match the outcome")
+        if self.receipt.executor != self.executor_id:
+            raise ValueError("receipt executor does not match the outcome")
+        if self.receipt.schema_version != "1":
+            raise ValueError("unsupported receipt schema version")
+        return self
+
+
+class JenkinsReceiptSubmission(ContractModel):
+    """The complete, versioned document a Jenkins adapter returns."""
+
+    schema_version: Literal["1"] = "1"
+    contract_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+    contract_version: str = Field(min_length=1, pattern=r"^\d+\.\d+\.\d+$")
+    plan_id: str = Field(min_length=1)
+    head: JenkinsObservedHead
+    execution_mode: JenkinsExecutionMode
+    evidence_origin: EvidenceOrigin
+    outcomes: tuple[JenkinsSuiteOutcome, ...] = Field(min_length=1)
+    generated_at: datetime
+
+    @model_validator(mode="after")
+    def validate_submission(self) -> Self:
+        """Require unique suite outcomes so replayed receipts cannot hide."""
+        suite_ids = [outcome.suite_id for outcome in self.outcomes]
+        if len(suite_ids) != len(set(suite_ids)):
+            raise ValueError("receipt submission suite outcomes must be unique")
+        return self
+
+
 PUBLIC_SCHEMA_MODELS: tuple[type[ContractModel], ...] = (
     FrameworkDiscovery,
     DiscoveryReport,
@@ -452,4 +836,19 @@ PUBLIC_SCHEMA_MODELS: tuple[type[ContractModel], ...] = (
     Waiver,
     TrustPolicyDecision,
     Diagnostic,
+    JenkinsContractLimits,
+    JenkinsExecutorBinding,
+    JenkinsArtifactDeclaration,
+    JenkinsSuiteBinding,
+    JenkinsConsumerContract,
+    JenkinsCancellationPolicy,
+    JenkinsStaleHeadPolicy,
+    JenkinsOutcomeResultRule,
+    JenkinsExpectedHead,
+    JenkinsTrustGrant,
+    JenkinsExecutionRequest,
+    JenkinsDiagnostic,
+    JenkinsObservedHead,
+    JenkinsSuiteOutcome,
+    JenkinsReceiptSubmission,
 )

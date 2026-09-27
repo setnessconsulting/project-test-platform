@@ -14,6 +14,13 @@ from test_platform.contracts import (
 
 _EXACT_SHA = re.compile(r"^[0-9a-f]{40,64}$")
 
+TRUST_RANK: dict[ExecutionTrustClass, int] = {
+    ExecutionTrustClass.PR_UNTRUSTED: 0,
+    ExecutionTrustClass.TRUSTED_BRANCH: 1,
+    ExecutionTrustClass.TRUSTED_MANUAL: 2,
+    ExecutionTrustClass.LIVE_QUALIFICATION: 3,
+}
+
 TRUST_CAPABILITIES: dict[ExecutionTrustClass, frozenset[TrustCapability]] = {
     ExecutionTrustClass.PR_UNTRUSTED: frozenset(
         {
@@ -55,6 +62,11 @@ TRUST_CAPABILITIES: dict[ExecutionTrustClass, frozenset[TrustCapability]] = {
 
 class TrustPolicyError(ValueError):
     """Raised when an execution request violates the trust policy."""
+
+
+def trust_at_least(candidate: ExecutionTrustClass, floor: ExecutionTrustClass) -> bool:
+    """Return whether a candidate trust class meets or exceeds a trust floor."""
+    return TRUST_RANK[candidate] >= TRUST_RANK[floor]
 
 
 def evaluate_capabilities(

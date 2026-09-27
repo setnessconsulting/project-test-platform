@@ -1,0 +1,164 @@
+# Canonical Jenkins consumer contract, version 1.
+#
+# Test Platform owns this file. project-jenkins mirrors only the version
+# identifiers and the closed suite/executor identities it must accept.
+#
+# Every entry here is centrally approved. A target repository cannot add,
+# widen, or re-point a suite, an executor, an entrypoint, a capability, an
+# agent class, an artifact, or a timeout. Executor entries carry no command
+# strings: the adapter resolves an approved executor_id to centrally
+# maintained Jenkins logic, so no pull request can inject shell.
+schema_version: "1"
+contract_id: jenkins-execution-contract
+contract_version: 1.0.0
+plan_schema_versions: ["1"]
+receipt_schema_versions: ["1"]
+# Centrally reviewed allowlist of exact repository identities this consumer
+# contract may execute. An empty list would accept any identity, so a reviewed
+# list is required before a contract is used for real execution.
+repositories:
+  - setnessconsulting/project-test-platform
+  - setnessconsulting/project-jenkins
+  - setnessconsulting/project-setness-consulting
+limits:
+  max_suites: 64
+  max_artifacts_per_suite: 8
+  max_artifact_bytes: 268435456
+  max_evidence_references_per_suite: 8
+  max_diagnostics_per_outcome: 8
+  max_diagnostic_message_length: 1024
+  max_suite_timeout_seconds: 7200
+  max_execution_seconds: 86400
+executors:
+  - executor_id: node-22-deterministic
+    capabilities: [node-22, network-isolated, private-evidence-store]
+    max_trust: live-qualification
+    agent_class: setness-ephemeral
+  - executor_id: node-24-deterministic
+    capabilities: [node-24, network-isolated, private-evidence-store]
+    max_trust: live-qualification
+    agent_class: setness-node24-ephemeral
+  - executor_id: browser-e2e
+    capabilities:
+      - node-22
+      - playwright-chromium
+      - network-isolated
+      - private-evidence-store
+    max_trust: live-qualification
+    agent_class: setness-e2e-ephemeral
+  - executor_id: container-infrastructure
+    capabilities:
+      - docker
+      - network-isolated
+      - private-evidence-store
+    max_trust: live-qualification
+    agent_class: setness-ephemeral
+suites:
+  - suite_id: verify
+    entrypoint: verify
+    executor_id: container-infrastructure
+    required_capabilities: [docker, network-isolated]
+    evidence_classes: [static, deterministic, contract, integration, adversarial-security]
+    timeout_seconds: 1800
+    artifacts:
+      - artifact_id: verify-log
+        kind: log
+        path: verify/verify.log
+        max_bytes: 4194304
+        evidence_class: static
+      - artifact_id: verify-results
+        kind: result-json
+        path: verify/results.json
+        max_bytes: 4194304
+        evidence_class: static
+  - suite_id: standard
+    entrypoint: standard
+    executor_id: node-22-deterministic
+    required_capabilities: [node-22, network-isolated]
+    evidence_classes: [deterministic, contract, integration]
+    timeout_seconds: 1800
+    artifacts:
+      - artifact_id: standard-log
+        kind: log
+        path: standard/standard.log
+        max_bytes: 4194304
+        evidence_class: deterministic
+      - artifact_id: standard-junit
+        kind: junit-xml
+        path: standard/junit.xml
+        max_bytes: 8388608
+        evidence_class: deterministic
+  - suite_id: typecheck
+    entrypoint: typecheck
+    executor_id: node-22-deterministic
+    required_capabilities: [node-22, network-isolated]
+    evidence_classes: [static, deterministic]
+    timeout_seconds: 900
+    artifacts:
+      - artifact_id: typecheck-log
+        kind: log
+        path: typecheck/typecheck.log
+        max_bytes: 2097152
+        evidence_class: static
+  - suite_id: tutor-web
+    entrypoint: tutor-web
+    executor_id: node-24-deterministic
+    required_capabilities: [node-24, network-isolated]
+    evidence_classes: [deterministic, contract]
+    timeout_seconds: 1800
+    artifacts:
+      - artifact_id: tutor-web-log
+        kind: log
+        path: tutor-web/tutor-web.log
+        max_bytes: 4194304
+        evidence_class: deterministic
+  - suite_id: e2e
+    entrypoint: e2e
+    executor_id: browser-e2e
+    required_capabilities: [node-22, playwright-chromium, network-isolated]
+    evidence_classes: [end-to-end, integration]
+    timeout_seconds: 3600
+    artifacts:
+      - artifact_id: e2e-log
+        kind: log
+        path: e2e/e2e.log
+        max_bytes: 4194304
+        evidence_class: integration
+      - artifact_id: e2e-junit
+        kind: junit-xml
+        path: e2e/junit.xml
+        max_bytes: 8388608
+        evidence_class: integration
+      - artifact_id: e2e-screenshots
+        kind: screenshot
+        path: e2e/screenshots
+        max_bytes: 33554432
+        evidence_class: end-to-end
+  - suite_id: qualify
+    entrypoint: qualify
+    executor_id: container-infrastructure
+    required_capabilities: [docker, network-isolated, private-evidence-store]
+    evidence_classes: [live-qualification, integration]
+    timeout_seconds: 3600
+    artifacts:
+      - artifact_id: qualify-log
+        kind: log
+        path: qualify/qualify.log
+        max_bytes: 4194304
+        evidence_class: integration
+  - suite_id: "qualify:live"
+    entrypoint: "qualify:live"
+    executor_id: container-infrastructure
+    required_capabilities:
+      - docker
+      - network-isolated
+      - private-evidence-store
+    evidence_classes: [live-qualification]
+    timeout_seconds: 3600
+    artifacts:
+      - artifact_id: qualify-live-log
+        kind: log
+        path: qualify-live/qualify-live.log
+        max_bytes: 4194304
+        live: true
+        evidence_class: live-qualification

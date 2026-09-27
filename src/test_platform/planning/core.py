@@ -17,6 +17,7 @@ from test_platform.contracts import (
     SuiteDefinition,
 )
 from test_platform.trust import (
+    TRUST_RANK,
     TrustPolicyError,
     require_evidence_allowed_for_trust,
     require_live_qualification_context,
@@ -38,12 +39,7 @@ class ExecutionEvent(StrEnum):
     LIVE_QUALIFICATION = "live-qualification"
 
 
-_TRUST_RANK = {
-    ExecutionTrustClass.PR_UNTRUSTED: 0,
-    ExecutionTrustClass.TRUSTED_BRANCH: 1,
-    ExecutionTrustClass.TRUSTED_MANUAL: 2,
-    ExecutionTrustClass.LIVE_QUALIFICATION: 3,
-}
+_TRUST_RANK = TRUST_RANK
 
 
 @dataclass(frozen=True)
