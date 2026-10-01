@@ -1,0 +1,15 @@
+schema_version: "1"
+behaviors:
+  - behavior_id: execution.exact-head-binding
+    description: Plans and receipts stay bound to their declared repository SHA, and evidence from a stale or mismatched head cannot count as a current pass.
+    criticality: critical
+    required_evidence: [contract, adversarial-security]
+  - behavior_id: execution.failure-visible
+    description: Test failures, cancellations, timeouts, and executor outages remain failed, blocked, or not-evaluable and never become a passing result.
+    criticality: critical
+    required_evidence: [deterministic, adversarial-security]
+  - behavior_id: execution.receipt-integrity
+    description: Quality receipts are validated against their plan, profile, suite, trust class, repository, SHA, and normalized result.
+    criticality: high
+    required_evidence: [deterministic, contract]
+critical_journeys: []
