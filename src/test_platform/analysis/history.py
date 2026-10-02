@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 from test_platform.adapters.results import TestCaseResultState
 from test_platform.contracts import EvidenceFreshness, EvidenceState, ProfileBinding
@@ -68,6 +68,8 @@ def _freshness(
     *,
     current_sha: str,
     current_profile: ProfileBinding,
+    now: datetime,
+    max_age_days: int | None = None,
 ) -> EvidenceFreshness:
     if not observations:
         return EvidenceFreshness(
@@ -88,6 +90,20 @@ def _freshness(
                 reason="current revision has failing or error evidence",
                 qualified_sha=current_sha,
             )
+        if max_age_days is not None:
+            # An exact-revision result can still be too old to trust. The
+            # profile declares this ceiling; enforce it here rather than
+            # letting live evidence qualify forever.
+            newest = max(item.observed_at for item in current)
+            if (now - newest) > timedelta(days=max_age_days):
+                return EvidenceFreshness(
+                    state=EvidenceState.STALE,
+                    reason=(
+                        f"current-revision evidence is older than the declared "
+                        f"{max_age_days}-day limit"
+                    ),
+                    qualified_sha=current_sha,
+                )
         if TestCaseResultState.PASS in states:
             return EvidenceFreshness(
                 state=EvidenceState.PROVEN,
@@ -114,8 +130,15 @@ def assess_test_history(
     *,
     current_sha: str,
     current_profile: ProfileBinding,
+    now: datetime | None = None,
+    max_age_days: int | None = None,
 ) -> TestHistoryAssessment:
-    """Summarize exact test history without letting retries erase failures."""
+    """Summarize exact test history without letting retries erase failures.
+
+    ``max_age_days`` enforces the profile's declared evidence-age ceiling. It
+    applies only when ``now`` is supplied, so an age ceiling is never enforced
+    against a guessed clock.
+    """
     relevant = tuple(
         sorted(
             (item for item in observations if item.test_id == test_id),
@@ -143,5 +166,7 @@ def assess_test_history(
             relevant,
             current_sha=current_sha,
             current_profile=current_profile,
+            now=now or datetime.now(UTC),
+            max_age_days=max_age_days,
         ),
     )

@@ -27,7 +27,7 @@ Every JSON command result uses this envelope:
       "schema_version": "1",
       "tool_version": "...",
       "command": "...",
-      "public_safe": false,
+      "public_safe": true,
       "payload": {...}
     }
 
@@ -45,8 +45,11 @@ Invalid manifest/profile/input data exits non-zero with a bounded error instead 
 Repository commands consume checked-in declarations plus explicit bounded JSON inputs. They do
 not fetch credentials or provider state.
 
-The --public-safe output mode redacts absolute paths and explicitly sensitive field names before
-serialization. Canonical command payloads do not carry raw logs or credential values.
+Public-safe redaction is **always applied**, not opt-in. Absolute paths are detected anywhere
+in a string — Windows drive, UNC, extended-length, and POSIX forms — and explicitly sensitive
+field names are redacted before serialization. The `--public-safe` flag is retained for
+contract compatibility and the envelope always reports `"public_safe": true`. Error messages
+carry only file names, never full host paths. See `docs/adversarial-limits.md`.
 
 Input and output documents have hard byte limits. Partial Portfolio Graph exports fail closed:
 every declared behavior and critical journey must have an explicit evidence finding before a

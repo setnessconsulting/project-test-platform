@@ -61,7 +61,7 @@ def test_behavior_link_defaults_to_useful_when_no_stronger_signal_exists() -> No
 def test_inventory_analysis_is_deterministic_and_complete() -> None:
     inventory = TestInventory(
         repository="setnessconsulting/example",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         tests=(
             _test(behavior_ids=("behavior.example",)),
             TestCaseObservation(

@@ -100,7 +100,7 @@ def test_semantic_hash_ignores_receipt_generation_time_only() -> None:
         receipt_id="receipt-1",
         plan_id="plan-1",
         repository="setnessconsulting/game-example",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=profile,
         suite_id="e2e",
         executor="jenkins",
@@ -118,7 +118,7 @@ def test_quality_export_semantic_hash_ignores_generation_time_only() -> None:
     base = dict(
         export_id="export-1",
         repository="setnessconsulting/web-example",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=profile,
         result=QualityResult.PASS,
         required_behaviors=4,
@@ -150,14 +150,14 @@ def test_execution_plan_binds_sha_profile_policy_and_trust() -> None:
     plan = ExecutionPlan(
         plan_id="plan-1",
         repository="setnessconsulting/example",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=ProfileBinding(profile_id="python-control-plane-v1", version="1.0.0"),
         trust=ExecutionTrustClass.PR_UNTRUSTED,
         policy_version="1",
         suites=(),
     )
 
-    assert plan.sha == "abcdef1234567"
+    assert plan.sha == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     assert plan.trust is ExecutionTrustClass.PR_UNTRUSTED
 
 

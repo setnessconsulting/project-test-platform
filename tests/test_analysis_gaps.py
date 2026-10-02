@@ -12,7 +12,7 @@ from test_platform.contracts import (
 )
 
 PROFILE = ProfileBinding(profile_id="web-application-v1", version="1.0.0")
-SHA = "abcdef1234567"
+SHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 
 def _document() -> BehaviorDocument:

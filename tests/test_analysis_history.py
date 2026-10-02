@@ -7,7 +7,7 @@ from test_platform.analysis import HistoryObservation, assess_test_history
 from test_platform.contracts import EvidenceState, ProfileBinding
 
 PROFILE = ProfileBinding(profile_id="python-control-plane-v1", version="1.0.0")
-SHA = "abcdef1234567"
+SHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 NOW = datetime(2026, 9, 25, tzinfo=UTC)
 
 

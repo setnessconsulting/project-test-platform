@@ -81,6 +81,10 @@ def _require_plan_binding(
         raise ReceiptIngestError("submission exact SHA does not match the plan")
     if submission.execution_mode != request.execution_mode:
         raise ReceiptIngestError("submission execution mode does not match the request")
+    if submission.platform_version != request.platform_version:
+        raise ReceiptIngestError(
+            "submission was produced under a different Test Platform revision"
+        )
 
 
 _HEAD_DEPENDENT_STATUSES = frozenset(

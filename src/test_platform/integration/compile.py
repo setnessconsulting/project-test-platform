@@ -9,6 +9,7 @@ capability and trust escalation, and fails closed on bounds.
 
 from __future__ import annotations
 
+from test_platform import __version__
 from test_platform.contracts import (
     EvidenceClass,
     ExecutionPlan,
@@ -206,6 +207,7 @@ def compile_jenkins_execution_request(
         contract_version=contract.contract_version,
         plan_schema_version=plan.schema_version,
         policy_version=plan.policy_version,
+        platform_version=__version__,
         execution_mode=execution_mode,
         head=JenkinsExpectedHead(repository=plan.repository, sha=plan.sha),
         plan=plan,

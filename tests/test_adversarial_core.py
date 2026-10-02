@@ -330,7 +330,7 @@ def _profile() -> QualityProfile:
 def test_not_applicable_rule_state_cannot_become_pass() -> None:
     result = evaluate_quality(
         repository=REPO,
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=_profile(),
         rule_states={"security-negative-path": EvidenceState.NOT_APPLICABLE},
         now=NOW,
@@ -343,7 +343,7 @@ def test_unknown_value_classification_is_advisory_only() -> None:
     states = {"security-negative-path": EvidenceState.PROVEN}
     plain = evaluate_quality(
         repository=REPO,
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=profile,
         rule_states=states,
         now=NOW,
@@ -356,7 +356,7 @@ def test_unknown_value_classification_is_advisory_only() -> None:
     )
     with_unknown = evaluate_quality(
         repository=REPO,
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=profile,
         rule_states=states,
         test_value_findings=(finding,),
@@ -370,7 +370,7 @@ def test_unknown_value_classification_is_advisory_only() -> None:
 def test_skipped_only_history_is_not_evaluable() -> None:
     observation = HistoryObservation(
         test_id="pytest:tests/test_slow.py",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=PROFILE,
         suite_id="standard",
         executor="jenkins",
@@ -383,7 +383,7 @@ def test_skipped_only_history_is_not_evaluable() -> None:
     assessment = assess_test_history(
         "pytest:tests/test_slow.py",
         (observation,),
-        current_sha="abcdef1234567",
+        current_sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         current_profile=PROFILE,
     )
     assert assessment.flaky is False
@@ -393,7 +393,7 @@ def test_skipped_only_history_is_not_evaluable() -> None:
 def test_failure_present_with_later_pass_is_missing_not_proven() -> None:
     earlier = HistoryObservation(
         test_id="pytest:tests/test_flaky.py",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=PROFILE,
         suite_id="standard",
         executor="jenkins",
@@ -405,7 +405,7 @@ def test_failure_present_with_later_pass_is_missing_not_proven() -> None:
     )
     later = HistoryObservation(
         test_id="pytest:tests/test_flaky.py",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=PROFILE,
         suite_id="standard",
         executor="jenkins",
@@ -418,7 +418,7 @@ def test_failure_present_with_later_pass_is_missing_not_proven() -> None:
     assessment = assess_test_history(
         "pytest:tests/test_flaky.py",
         (earlier, later),
-        current_sha="abcdef1234567",
+        current_sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         current_profile=PROFILE,
     )
     assert assessment.flaky is True

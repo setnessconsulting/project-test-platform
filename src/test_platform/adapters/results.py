@@ -13,6 +13,9 @@ DEFAULT_MAX_RESULT_BYTES = 2_000_000
 DEFAULT_MAX_TEST_CASES = 10_000
 DEFAULT_MAX_TEST_ID_CHARS = 1024
 DEFAULT_MAX_MESSAGE_CHARS = 4096
+# A single test case cannot legitimately take longer than this; a larger value
+# is hostile or corrupted rather than informative.
+MAX_DURATION_SECONDS = 86_400.0
 
 
 class ResultAdapterError(ValueError):
@@ -47,9 +50,20 @@ class ParsedTestResults:
 
     @property
     def aggregate_result(self) -> QualityResult:
+        """Aggregate every observed attempt into one bounded suite verdict.
+
+        Any failure or error fails the suite regardless of later retries. A
+        suite with no results, or one where every test was skipped, proves
+        nothing and is therefore ``NOT_EVALUABLE`` rather than ``PASS``,
+        matching ``analysis.history._freshness``.
+        """
         failing = {TestCaseResultState.FAIL, TestCaseResultState.ERROR}
         if any(item.state in failing for item in self.tests):
             return QualityResult.FAIL
+        if not self.tests:
+            return QualityResult.NOT_EVALUABLE
+        if all(item.state is TestCaseResultState.SKIPPED for item in self.tests):
+            return QualityResult.NOT_EVALUABLE
         return QualityResult.PASS
 
 
@@ -76,13 +90,31 @@ def _duration(value: str | None) -> float:
         return 0.0
     try:
         duration = float(value)
-    except ValueError as exc:
-        raise ResultAdapterError(f"invalid test duration {value!r}") from exc
+    except (ValueError, OverflowError) as exc:
+        raise ResultAdapterError(f"invalid test duration {value[:64]!r}") from exc
     if not math.isfinite(duration):
         raise ResultAdapterError("test duration must be finite")
     if duration < 0:
         raise ResultAdapterError("test duration cannot be negative")
+    if duration > MAX_DURATION_SECONDS:
+        raise ResultAdapterError(f"test duration exceeds {MAX_DURATION_SECONDS} seconds")
     return duration
+
+
+def _bounded_text(element: ElementTree.Element | None) -> str | None:
+    """Return element text bounded before it is materialized into a message.
+
+    ``element.text`` allocates the whole text node; reading only the permitted
+    prefix keeps a hostile multi-megabyte reason body out of memory.
+    """
+    if element is None:
+        return None
+    text = element.text
+    if not text:
+        return None
+    if len(text) > DEFAULT_MAX_MESSAGE_CHARS:
+        text = text[:DEFAULT_MAX_MESSAGE_CHARS]
+    return _bounded_message(text)
 
 
 def _stable_case_id(framework: str, classname: str | None, name: str | None) -> str:
@@ -129,6 +161,54 @@ def _attempts(
     return tuple(normalized)
 
 
+class _NoDoctypeBuilder(ElementTree.TreeBuilder):
+    """Tree builder that refuses any document type declaration.
+
+    ``XMLParser(forbid_dtd=...)`` only exists on Python 3.13+, so on the
+    supported 3.12 baseline the DTD refusal is implemented here instead. Because
+    this is a parser-target callback it fires during the parse rather than
+    through a substring match, which is what makes entity expansion and
+    external-entity payloads fail closed instead of incidentally.
+    """
+
+    def doctype(self, name: str, pubid: str | None, system: str | None) -> None:
+        raise ValueError("document type declarations are not permitted")
+
+
+def _parse_xml(text: str, *, kind: str) -> ElementTree.Element:
+    """Parse hostile result XML under an explicit parser policy."""
+    try:
+        parser = ElementTree.XMLParser(target=_NoDoctypeBuilder())
+        parser.feed(text)
+        return parser.close()
+    except ElementTree.ParseError as exc:
+        raise ResultAdapterError(f"malformed {kind} XML") from exc
+    except RecursionError as exc:
+        raise ResultAdapterError(f"{kind} XML nesting exceeds parser bounds") from exc
+    except ValueError as exc:
+        # The DTD refusal surfaces here, alongside malformed-input refusals.
+        raise ResultAdapterError(f"{kind} XML uses a forbidden XML construct") from exc
+
+
+def _collect_cases(
+    root: ElementTree.Element,
+    tag: str,
+    *,
+    max_cases: int,
+) -> list[ElementTree.Element]:
+    """Collect test-case elements, refusing to exceed the declared case bound.
+
+    The count is enforced while iterating so an over-large document is rejected
+    without first materializing every matching element.
+    """
+    cases: list[ElementTree.Element] = []
+    for case in root.iter(tag):
+        cases.append(case)
+        if len(cases) > max_cases:
+            raise ResultAdapterError(f"result document exceeds {max_cases} test cases")
+    return cases
+
+
 def parse_junit_xml(
     content: str | bytes,
     *,
@@ -138,16 +218,8 @@ def parse_junit_xml(
 ) -> ParsedTestResults:
     """Parse JUnit XML without resolving external entities or executing repository code."""
     text = _bounded_xml(content, max_bytes=max_bytes)
-    try:
-        root = ElementTree.fromstring(text)
-    except ElementTree.ParseError as exc:
-        raise ResultAdapterError("malformed JUnit XML") from exc
-    except RecursionError as exc:
-        raise ResultAdapterError("JUnit XML nesting exceeds parser bounds") from exc
-
-    cases = root.findall(".//testcase")
-    if len(cases) > max_cases:
-        raise ResultAdapterError(f"result document exceeds {max_cases} test cases")
+    root = _parse_xml(text, kind="JUnit")
+    cases = _collect_cases(root, "testcase", max_cases=max_cases)
 
     raw: list[tuple[str, TestCaseResultState, float, str | None]] = []
     for case in cases:
@@ -182,16 +254,8 @@ def parse_nunit_xml(
 ) -> ParsedTestResults:
     """Parse the bounded NUnit-style test-case format commonly emitted by Pester."""
     text = _bounded_xml(content, max_bytes=max_bytes)
-    try:
-        root = ElementTree.fromstring(text)
-    except ElementTree.ParseError as exc:
-        raise ResultAdapterError("malformed NUnit XML") from exc
-    except RecursionError as exc:
-        raise ResultAdapterError("NUnit XML nesting exceeds parser bounds") from exc
-
-    cases = root.findall(".//test-case")
-    if len(cases) > max_cases:
-        raise ResultAdapterError(f"result document exceeds {max_cases} test cases")
+    root = _parse_xml(text, kind="NUnit")
+    cases = _collect_cases(root, "test-case", max_cases=max_cases)
 
     raw: list[tuple[str, TestCaseResultState, float, str | None]] = []
     for case in cases:
@@ -208,8 +272,8 @@ def parse_nunit_xml(
         else:
             state = TestCaseResultState.ERROR
         reason = case.find(".//message")
-        message = reason.text.strip() if reason is not None and reason.text else None
-        raw.append((test_id, state, duration, _bounded_message(message)))
+        message = _bounded_text(reason)
+        raw.append((test_id, state, duration, message))
 
     return ParsedTestResults(framework=framework, tests=_attempts(raw, framework))
 

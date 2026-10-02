@@ -56,19 +56,37 @@ pilot qualification, migration parity, adversarial release hardening, and final 
 ## Remaining epic work
 
 Implemented since the last revision: API-390 (Jenkins ExecutionPlan/QualityReceipt
-consumer contract), API-401 (deployment placement migrates to Jenkins when qualified).
-Phase A core adversarial hardening (API-396) is covered by the deterministic
-`tests/test_adversarial_core.py` suite plus existing replay/trust/waiver/bound tests.
+consumer contract), API-401 (deployment placement migrates to Jenkins when qualified),
+API-396 (Phase A core adversarial hardening).
+
+API-396 Phase A hardened the core against hostile input and closed four verified
+violations of the stated critical invariants:
+
+- the evaluator could aggregate a `NOT_APPLICABLE` behavior gap to `PASS`
+- `validate_quality_receipt` never recomputed the receipt identity, so forged
+  identifiers bypassed the replay ledger
+- the public-safety scanner and discovery walk were unbounded and followed symlinks
+- public-safe output only redacted whole-value paths, leaking the operator host path
+  to stderr on every malformed-manifest run
+
+Also fixed: dead `live_evidence_max_age_days` enforcement, all-skipped suites
+aggregating to `PASS`, `evaluate` passing with behavior analysis omitted, waiver
+scope not bound to a revision, lax `min_length=7` SHA contracts, incomplete secret
+patterns, and unqualified platform-revision binding for qualification evidence.
+
+Limits and the explicitly unclosed boundaries are documented in
+`docs/adversarial-limits.md` and `SECURITY.md`. The plan → request → receipt chain
+remains unauthenticated; that attestation work is API-399.
 
 - API-393: project-portfolio-graph QualityExport consumer integration (export side
   complete; consumer side pending in project-portfolio-graph)
 - API-394: four representative real-repository qualifications (pilot manifests pending)
 - API-395: same-SHA Jenkins shadow parity/fallback and safe Actions migration proof
   (gated on CONSULTING-355 Jenkins GO)
-- API-396: Phase A core adversarial hardening (implemented; closeout after review)
 - API-398: portfolio-wide Test Platform + Jenkins onboarding and CI/CD migration
   (gated on API-394, API-395, API-401, and CONSULTING-368)
-- API-399: Phase B integration adversarial hardening (gated on real integration evidence)
+- API-399: Phase B integration adversarial hardening, including cryptographic
+  attestation of the plan → request → receipt chain
 - API-397: exact-SHA V1 qualification, release, and maintenance-mode transition
 - API-400: bounded exact-SHA CI fallback for frozen project-jira-api (separate lane;
   excluded from the API-398 active-repository set)
@@ -76,5 +94,6 @@ Phase A core adversarial hardening (API-396) is covered by the deterministic
 ## Evidence semantics
 
 Passing repository/synthetic verification does not establish Jenkins, GitHub Actions migration,
-Portfolio Graph consumption, or any live provider path as qualified. API-396/API-397 must remain
-open until their prerequisite integration and pilot evidence exists.
+Portfolio Graph consumption, or any live provider path as qualified. API-397 must remain
+open until its prerequisite integration and pilot evidence exists. API-399 owns attestation
+of live-provider claims.

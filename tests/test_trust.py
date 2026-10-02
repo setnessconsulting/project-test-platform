@@ -42,13 +42,15 @@ def test_live_qualification_requires_exact_sha_target_and_owner_approval() -> No
         owner_approved=True,
     )
 
-    with pytest.raises(TrustPolicyError, match="full exact"):
-        require_live_qualification_context(
-            trust=ExecutionTrustClass.LIVE_QUALIFICATION,
-            sha="abcdef1",
-            target="fixture:test",
-            owner_approved=True,
-        )
+    # A short, non-hex, or traversal-shaped revision cannot authorise live work.
+    for bad_sha in ("abc123", "a" * 39, "../../etc", "A" * 40):
+        with pytest.raises(TrustPolicyError, match="full exact"):
+            require_live_qualification_context(
+                trust=ExecutionTrustClass.LIVE_QUALIFICATION,
+                sha=bad_sha,
+                target="fixture:test",
+                owner_approved=True,
+            )
 
     with pytest.raises(TrustPolicyError, match="owner approval"):
         require_live_qualification_context(
