@@ -74,20 +74,6 @@ def test_unsupported_framework_yields_unknown(tmp_path: Path) -> None:
     assert report.frameworks == ()
 
 
-def test_malformed_framework_config_is_explicit(tmp_path: Path) -> None:
-    root = _repo(tmp_path)
-    (root / "package.json").write_text(
-        '{"devDependencies":{"vitest":"1.0.0"',
-        encoding="utf-8",
-    )
-
-    report = discover_repository(root)
-
-    assert report.state is DiscoveryState.MALFORMED
-    assert report.frameworks[0].framework == "vitest"
-    assert report.frameworks[0].state is DiscoveryState.MALFORMED
-
-
 def test_file_limit_returns_incomplete_state(tmp_path: Path) -> None:
     root = _repo(tmp_path)
     for number in range(10):
@@ -127,8 +113,85 @@ def test_discovery_requires_repository_like_explicit_root(tmp_path: Path) -> Non
         RepositoryIndex.build(tmp_path)
 
 
+def test_malformed_config_is_attributed_to_only_the_declared_framework(
+    tmp_path: Path,
+) -> None:
+    """A truncated package.json is not evidence that every Node framework is used.
+
+    A repository that declares only vitest must not report jest and playwright as
+    malformed too; that would turn one broken file into three framework findings.
+    """
+    root = _repo(tmp_path)
+    (root / "package.json").write_text(
+        '{"devDependencies":{"vitest":"1.0.0"',
+        encoding="utf-8",
+    )
+
+    report = discover_repository(root)
+
+    assert report.state is DiscoveryState.MALFORMED
+    assert [item.framework for item in report.frameworks] == ["vitest"]
+
+
 def test_plugin_registry_rejects_duplicate_framework_ids() -> None:
     plugin = PytestDiscoveryPlugin()
 
     with pytest.raises(DiscoveryError, match="duplicate discovery plugin"):
         PluginRegistry((plugin, plugin))
+
+
+def test_unrelated_package_name_substring_does_not_detect_a_framework(
+    tmp_path: Path,
+) -> None:
+    """A dependency whose name merely contains a framework name is not that framework.
+
+    ``@testing-library/jest-dom`` is a DOM matcher library used with Vitest and
+    Playwright. Matching package names by substring reported this repository as
+    using Jest, inventing a framework and a second copy of every test path.
+    """
+    root = _repo(tmp_path)
+    (root / "package.json").write_text(
+        json.dumps(
+            {
+                "devDependencies": {
+                    "vitest": "4.1.11",
+                    "@testing-library/jest-dom": "^6.9.1",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (root / "src").mkdir()
+    (root / "src/widget.test.ts").write_text("it('works', () => {})\n", encoding="utf-8")
+
+    report = discover_repository(root)
+
+    assert [item.framework for item in report.frameworks] == ["vitest"]
+
+
+def test_frameworks_do_not_claim_each_others_test_paths(tmp_path: Path) -> None:
+    """Browser specs and unit tests belong to exactly one discovered framework."""
+    root = _repo(tmp_path)
+    (root / "package.json").write_text(
+        json.dumps(
+            {
+                "devDependencies": {
+                    "vitest": "4.1.11",
+                    "@playwright/test": "1.62.1",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (root / "vitest.config.ts").write_text("export default {}\n", encoding="utf-8")
+    (root / "playwright.config.ts").write_text("export default {}\n", encoding="utf-8")
+    (root / "src").mkdir()
+    (root / "e2e").mkdir()
+    (root / "src/engine.test.ts").write_text("it('unit', () => {})\n", encoding="utf-8")
+    (root / "e2e/journey.spec.ts").write_text("test('e2e', async () => {})\n", encoding="utf-8")
+
+    report = discover_repository(root)
+    frameworks = {item.framework: item for item in report.frameworks}
+
+    assert frameworks["vitest"].test_paths == ("src/engine.test.ts",)
+    assert frameworks["playwright"].test_paths == ("e2e/journey.spec.ts",)
