@@ -309,18 +309,25 @@ def evaluate_from_context(
     sha: str,
     rule_states: Mapping[str, EvidenceState],
     gaps: tuple[GapFinding, ...],
+    behavior_gaps_evaluated: bool,
     waivers: tuple[Waiver, ...],
     applicable_conditional_rules: frozenset[str],
     blocked_reasons: tuple[str, ...],
     now: datetime,
 ) -> QualityAssessment:
-    """Evaluate current repository quality from explicit inputs."""
+    """Evaluate current repository quality from explicit inputs.
+
+    Absence of behavior gap analysis is itself an explicit input state, not an
+    implicit pass: the caller must declare it via ``behavior_gaps_evaluated``
+    so an unverified repository can never be reported as proven.
+    """
     return evaluate_quality(
         repository=repository,
         sha=sha,
         profile=context.profile,
         rule_states=rule_states,
         behavior_gaps=gaps,
+        behavior_gaps_evaluated=behavior_gaps_evaluated,
         waivers=waivers,
         applicable_conditional_rules=applicable_conditional_rules,
         blocked_reasons=blocked_reasons,

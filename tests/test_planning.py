@@ -128,13 +128,15 @@ def test_plan_rejects_undeclared_additional_suite() -> None:
 
 
 def test_plan_requires_exact_sha() -> None:
-    with pytest.raises(PlanningError, match="full exact"):
-        compile_execution_plan(
-            repository="setnessconsulting/web-example",
-            sha="abcdef1",
-            profile=_profile(),
-            manifest=_manifest(),
-            trust=ExecutionTrustClass.PR_UNTRUSTED,
-            policy_version="1",
-            context=PlanningContext(event=ExecutionEvent.PULL_REQUEST),
-        )
+    # A short or non-hex revision cannot bind an execution plan.
+    for bad_sha in ("abc123", "a" * 39, "../../etc", "A" * 40):
+        with pytest.raises(PlanningError, match="full exact"):
+            compile_execution_plan(
+                repository="setnessconsulting/web-example",
+                sha=bad_sha,
+                profile=_profile(),
+                manifest=_manifest(),
+                trust=ExecutionTrustClass.PR_UNTRUSTED,
+                policy_version="1",
+                context=PlanningContext(event=ExecutionEvent.PULL_REQUEST),
+            )

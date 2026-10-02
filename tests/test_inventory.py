@@ -37,13 +37,13 @@ def test_inventory_is_deterministic_and_keeps_behavior_links_explicit() -> None:
 
     first = build_inventory(
         repository="setnessconsulting/example",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         discovery=discovery,
         behavior_links=links,
     )
     second = build_inventory(
         repository="setnessconsulting/example",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         discovery=discovery,
         behavior_links=links,
     )
@@ -80,7 +80,7 @@ def test_same_path_from_multiple_frameworks_is_diagnostic_not_silently_collapsed
 
     result = build_inventory(
         repository="setnessconsulting/example",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         discovery=discovery,
     )
 
@@ -97,7 +97,7 @@ def test_unknown_behavior_link_target_is_visible() -> None:
 
     result = build_inventory(
         repository="setnessconsulting/example",
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         discovery=discovery,
         behavior_links={"pytest:missing.py": ("missing.behavior",)},
     )
@@ -120,6 +120,6 @@ def test_incomplete_discovery_cannot_be_represented_as_complete_inventory(
     with pytest.raises(InventoryError):
         build_inventory(
             repository="setnessconsulting/example",
-            sha="abcdef1234567",
+            sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             discovery=discovery,
         )

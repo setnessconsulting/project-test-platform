@@ -24,6 +24,8 @@ from test_platform.contracts import (
 
 NOW = datetime(2026, 9, 25, tzinfo=UTC)
 REPO = "setnessconsulting/example"
+SHA = "a" * 40
+OTHER_SHA = "b" * 40
 
 
 def _profile(*, non_waivable: bool = False, version: str = "1.0.0") -> QualityProfile:
@@ -44,12 +46,18 @@ def _profile(*, non_waivable: bool = False, version: str = "1.0.0") -> QualityPr
     )
 
 
-def _waiver(profile: QualityProfile, *, expires: datetime | None = None) -> Waiver:
+def _waiver(
+    profile: QualityProfile,
+    *,
+    expires: datetime | None = None,
+    waiver_id: str = "waiver-1",
+    sha: str = SHA,
+) -> Waiver:
     binding = ProfileBinding(profile_id=profile.profile_id, version=profile.version)
     return Waiver(
-        waiver_id="waiver-1",
+        waiver_id=waiver_id,
         rule_id="security-negative-path",
-        scope=exact_waiver_scope(REPO, binding),
+        scope=exact_waiver_scope(REPO, binding, sha),
         reason="temporary reviewed compatibility gap",
         owner_decision_ref="API-999",
         created_at=NOW - timedelta(days=1),
@@ -60,7 +68,7 @@ def _waiver(profile: QualityProfile, *, expires: datetime | None = None) -> Waiv
 def test_proven_required_rule_passes_without_score() -> None:
     result = evaluate_quality(
         repository=REPO,
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=_profile(),
         rule_states={"security-negative-path": EvidenceState.PROVEN},
         now=NOW,
@@ -74,7 +82,7 @@ def test_missing_waivable_rule_can_use_exact_current_profile_waiver() -> None:
     profile = _profile()
     result = evaluate_quality(
         repository=REPO,
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=profile,
         rule_states={"security-negative-path": EvidenceState.MISSING},
         waivers=(_waiver(profile),),
@@ -90,13 +98,13 @@ def test_expired_or_old_profile_waiver_does_not_apply() -> None:
     old_profile = _profile(version="1.0.0")
     result = evaluate_quality(
         repository=REPO,
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=profile,
         rule_states={"security-negative-path": EvidenceState.MISSING},
-        waivers=(
-            _waiver(old_profile),
-            _waiver(profile, expires=NOW - timedelta(seconds=1)),
-        ),
+waivers=(
+                _waiver(old_profile, waiver_id="waiver-old-profile"),
+                _waiver(profile, waiver_id="waiver-expired", expires=NOW - timedelta(seconds=1)),
+            ),
         now=NOW,
     )
 
@@ -108,7 +116,7 @@ def test_not_evaluable_evidence_cannot_be_waived_into_pass() -> None:
     profile = _profile()
     result = evaluate_quality(
         repository=REPO,
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=profile,
         rule_states={"security-negative-path": EvidenceState.NOT_EVALUABLE},
         waivers=(_waiver(profile),),
@@ -123,7 +131,7 @@ def test_non_waivable_rule_ignores_otherwise_valid_waiver() -> None:
     profile = _profile(non_waivable=True)
     result = evaluate_quality(
         repository=REPO,
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=profile,
         rule_states={"security-negative-path": EvidenceState.MISSING},
         waivers=(_waiver(profile),),
@@ -147,7 +155,7 @@ def test_wildcard_waiver_scope_fails_closed() -> None:
     with pytest.raises(QualityEvaluationError, match="wildcard"):
         evaluate_quality(
             repository=REPO,
-            sha="abcdef1234567",
+            sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             profile=profile,
             rule_states={"security-negative-path": EvidenceState.MISSING},
             waivers=(waiver,),
@@ -158,7 +166,7 @@ def test_wildcard_waiver_scope_fails_closed() -> None:
 def test_explicit_blocker_outranks_other_pass_evidence() -> None:
     result = evaluate_quality(
         repository=REPO,
-        sha="abcdef1234567",
+        sha="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         profile=_profile(),
         rule_states={"security-negative-path": EvidenceState.PROVEN},
         blocked_reasons=("qualified executor unavailable",),

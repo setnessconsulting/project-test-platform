@@ -190,6 +190,7 @@ def _submission(
         evidence_origin=evidence_origin,
         outcomes=tuple(outcomes),
         generated_at=GENERATED_AT,
+        platform_version=request.platform_version,
     )
 
 

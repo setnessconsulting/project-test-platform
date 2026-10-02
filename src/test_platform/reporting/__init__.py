@@ -16,10 +16,21 @@ from test_platform.contracts import (
     QualityAssessment,
     QualityExport,
 )
+from test_platform.secret_shapes import reject_secret_shapes
 
 MAX_JSON_INPUT_BYTES = 2_000_000
 MAX_OUTPUT_BYTES = 2_000_000
-_WINDOWS_ABSOLUTE = re.compile(r"^[A-Za-z]:[\\/]")
+
+# Matched anywhere in a string, not only at the start. Real output embeds a
+# host path inside a longer message ("invalid repository manifest: C:\Users\"),
+# so a whole-value test would leave the operator's home path in the output.
+_WINDOWS_ABSOLUTE = re.compile(r"(?i)\b[a-z]:[\\/]")
+_UNC_ABSOLUTE = re.compile(r"\\\\[a-z0-9._$-]+\\")
+_POSIX_ABSOLUTE = re.compile(
+    r"(?<![A-Za-z0-9_])/(?:home|Users|root|var|tmp|etc|opt|private|mnt|srv)/"
+)
+_EXTENDED_WINDOWS = re.compile(r"\\\\\?\\")
+
 _PRIVATE_FIELD_MARKERS = (
     "credential",
     "password",
@@ -35,31 +46,72 @@ class ReportingError(ValueError):
 
 
 def load_json_file(path: Path, *, max_bytes: int = MAX_JSON_INPUT_BYTES) -> Any:
-    """Load one bounded UTF-8 JSON file."""
+    """Load one bounded UTF-8 JSON file.
+
+    JSON ingress is scanned for secret shapes exactly like YAML ingress, so a
+    credential cannot be smuggled in through a command input file.
+    """
     try:
         size = path.stat().st_size
     except OSError as exc:
-        raise ReportingError(f"cannot read JSON input: {path}") from exc
+        # Name only: a host path here would be printed to stderr.
+        raise ReportingError(f"cannot read JSON input: {path.name}") from exc
     if size > max_bytes:
         raise ReportingError(f"JSON input exceeds {max_bytes} bytes")
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ReportingError(f"invalid JSON input: {path}") from exc
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ReportingError(f"invalid JSON input: {path.name}") from exc
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ReportingError(f"invalid JSON input: {path.name}") from exc
+    reject_secret_shapes(value, source=path.name, error=ReportingError)
+    return value
 
 
 def _looks_absolute_path(value: str) -> bool:
-    return value.startswith("/") or bool(_WINDOWS_ABSOLUTE.match(value))
+    return bool(
+        _WINDOWS_ABSOLUTE.search(value)
+        or _UNC_ABSOLUTE.search(value)
+        or _EXTENDED_WINDOWS.search(value)
+        or _POSIX_ABSOLUTE.search(value)
+    )
+
+
+def _redact_embedded(value: str) -> str:
+    """Replace an absolute path inside a longer message with a marker.
+
+    Whole-string replacement would discard surrounding context operators need;
+    only the path-bearing portion is replaced.
+    """
+    for pattern in (
+        _WINDOWS_ABSOLUTE,
+        _UNC_ABSOLUTE,
+        _EXTENDED_WINDOWS,
+        _POSIX_ABSOLUTE,
+    ):
+        value = pattern.sub("<redacted-path>", value)
+    return value
 
 
 def public_safe_value(value: Any, *, key: str | None = None) -> Any:
-    """Redact private-path and explicitly sensitive fields from structured output."""
+    """Redact private-path and explicitly sensitive fields from structured output.
+
+    Applied unconditionally to every command envelope. Public output is
+    permanently public, so redaction is not opt-in: ``--public-safe`` remains
+    for contract compatibility and is always enforced.
+    """
     normalized_key = (key or "").lower().replace("-", "_")
     if any(marker in normalized_key for marker in _PRIVATE_FIELD_MARKERS):
         return "<redacted>"
 
     if isinstance(value, str):
-        return "<redacted-path>" if _looks_absolute_path(value) else value
+        return (
+            "<redacted-path>"
+            if _looks_absolute_path(value)
+            else _redact_embedded(value)
+        )
     if isinstance(value, dict):
         return {
             str(item_key): public_safe_value(item_value, key=str(item_key))
@@ -74,16 +126,20 @@ def command_envelope(
     command: str,
     payload: dict[str, Any],
     *,
-    public_safe: bool,
+    public_safe: bool = True,
 ) -> dict[str, Any]:
-    """Wrap a command result in the stable V1 output envelope."""
-    safe_payload = public_safe_value(payload) if public_safe else payload
+    """Wrap a command result in the stable V1 output envelope.
+
+    Redaction is always applied. ``public_safe`` is retained for contract
+    compatibility with existing consumers but is no longer a switch: output is
+    public-safe whether or not it was requested.
+    """
     return {
         "schema_version": "1",
         "tool_version": __version__,
         "command": command,
-        "public_safe": public_safe,
-        "payload": safe_payload,
+        "public_safe": True,
+        "payload": public_safe_value(payload),
     }
 
 

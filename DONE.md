@@ -38,19 +38,22 @@ verification.
 
 Repository-local public-safe core implemented through API-392, plus API-390
 (Jenkins ExecutionPlan/QualityReceipt consumer contract), API-401 (deployment
-placement migrates to Jenkins when qualified), and the API-396 Phase A core
-adversarial suite.
+placement migrates to Jenkins when qualified), and API-396 (Phase A core
+adversarial hardening, closing four verified violations of the stated critical
+invariants with property-tested, mutation-verified coverage).
 
 ## Acceptable limitations
 
 API-393 (Portfolio Graph QualityExport consumer integration), API-394 (four
 representative real-repository qualifications), API-395 (Jenkins shadow
 parity/fallback), API-398 (portfolio-wide onboarding and CI/CD migration),
-API-399 (Phase B integration adversarial hardening), API-397 (exact-SHA V1
+API-399 (Phase B integration adversarial hardening, including cryptographic
+attestation of the plan → request → receipt chain), API-397 (exact-SHA V1
 qualification, release, maintenance-mode transition) all remaining. API-400
 (bounded exact-SHA CI fallback for frozen project-jira-api) is a separate lane
 excluded from the active-repository rollout set. See STATUS.md for the current
-remaining-work detail.
+remaining-work detail and `docs/adversarial-limits.md` for enforced limits and
+explicitly unclosed security boundaries.
 
 ## Post-completion operating mode
 

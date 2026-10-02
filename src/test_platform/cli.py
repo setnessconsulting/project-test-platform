@@ -372,6 +372,7 @@ def _dispatch(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             sha=args.sha,
             rule_states=parse_rule_states(load_json_file(args.rule_states)),
             gaps=parse_gap_findings(_optional_json(args.gaps)),
+            behavior_gaps_evaluated=args.gaps is not None,
             waivers=parse_waivers(_optional_json(args.waivers)),
             applicable_conditional_rules=frozenset(args.conditional_rule),
             blocked_reasons=tuple(args.blocked_reason),

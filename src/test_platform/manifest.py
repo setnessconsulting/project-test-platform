@@ -7,6 +7,7 @@ from pathlib import Path, PurePosixPath
 from pydantic import ValidationError
 
 from test_platform.contracts import RepositoryManifest
+from test_platform.filesystem_safety import is_indirect
 from test_platform.profiles import ProfileError, load_profile
 from test_platform.yaml_io import YamlContractError, parse_yaml_mapping
 
@@ -39,20 +40,21 @@ def _validate_repo_child(root: Path, relative: str, *, field: str) -> None:
     current = root_resolved
     for part in PurePosixPath(relative).parts:
         current = current / part
-        if current.is_symlink():
-            raise ManifestError(f"{field} must not traverse a symlink")
+        if is_indirect(current):
+            raise ManifestError(f"{field} must not traverse a link or junction")
 
 
 def load_manifest(path: Path) -> RepositoryManifest:
     """Load and validate the root .test-platform.yaml contract."""
     if path.name != ".test-platform.yaml":
         raise ManifestError("manifest filename must be .test-platform.yaml")
-    if path.is_symlink():
-        raise ManifestError("manifest must not be a symlink")
+    if is_indirect(path):
+        raise ManifestError("manifest must not be a link or junction")
     try:
         size = path.stat().st_size
     except OSError as exc:
-        raise ManifestError(f"cannot read manifest: {path}") from exc
+        # Name only: a host path here would be printed to stderr.
+        raise ManifestError(f"cannot read manifest: {path.name}") from exc
     if size > MAX_MANIFEST_BYTES:
         raise ManifestError("manifest exceeds maximum size")
 
@@ -62,7 +64,7 @@ def load_manifest(path: Path) -> RepositoryManifest:
     except YamlContractError as exc:
         raise ManifestError(str(exc)) from exc
     except (OSError, ValidationError) as exc:
-        raise ManifestError(f"invalid repository manifest: {path}") from exc
+        raise ManifestError(f"invalid repository manifest: {path.name}") from exc
 
     _validate_relative_path(manifest.behaviors_path, field="behaviors_path")
     _validate_repo_child(path.parent, manifest.behaviors_path, field="behaviors_path")

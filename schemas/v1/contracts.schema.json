@@ -372,7 +372,10 @@
           "type": "string"
         },
         "sha": {
-          "minLength": 7,
+          "description": "exact repository revision",
+          "maxLength": 64,
+          "minLength": 40,
+          "pattern": "^[0-9a-f]{40,64}$",
           "title": "Sha",
           "type": "string"
         },
@@ -856,6 +859,12 @@
           "title": "Plan Schema Version",
           "type": "string"
         },
+        "platform_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Platform Version",
+          "type": "string"
+        },
         "policy_version": {
           "minLength": 1,
           "title": "Policy Version",
@@ -913,7 +922,8 @@
         "plan",
         "trust_grant",
         "suites",
-        "result_mapping"
+        "result_mapping",
+        "platform_version"
       ],
       "title": "JenkinsExecutionRequest",
       "type": "object"
@@ -1086,6 +1096,12 @@
           "title": "Plan Id",
           "type": "string"
         },
+        "platform_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Platform Version",
+          "type": "string"
+        },
         "schema_version": {
           "const": "1",
           "default": "1",
@@ -1101,7 +1117,8 @@
         "execution_mode",
         "evidence_origin",
         "outcomes",
-        "generated_at"
+        "generated_at",
+        "platform_version"
       ],
       "title": "JenkinsReceiptSubmission",
       "type": "object"
@@ -1356,7 +1373,10 @@
           "type": "string"
         },
         "sha": {
-          "minLength": 7,
+          "description": "exact repository revision",
+          "maxLength": 64,
+          "minLength": 40,
+          "pattern": "^[0-9a-f]{40,64}$",
           "title": "Sha",
           "type": "string"
         },
@@ -1459,7 +1479,10 @@
           "type": "string"
         },
         "sha": {
-          "minLength": 7,
+          "description": "exact repository revision",
+          "maxLength": 64,
+          "minLength": 40,
+          "pattern": "^[0-9a-f]{40,64}$",
           "title": "Sha",
           "type": "string"
         }
@@ -1619,7 +1642,10 @@
           "type": "string"
         },
         "sha": {
-          "minLength": 7,
+          "description": "exact repository revision",
+          "maxLength": 64,
+          "minLength": 40,
+          "pattern": "^[0-9a-f]{40,64}$",
           "title": "Sha",
           "type": "string"
         },
@@ -1825,7 +1851,10 @@
           "type": "string"
         },
         "sha": {
-          "minLength": 7,
+          "description": "exact repository revision",
+          "maxLength": 64,
+          "minLength": 40,
+          "pattern": "^[0-9a-f]{40,64}$",
           "title": "Sha",
           "type": "string"
         },
@@ -1868,7 +1897,10 @@
           "$ref": "#/$defs/QualityResult"
         },
         "sha": {
-          "minLength": 7,
+          "description": "exact repository revision",
+          "maxLength": 64,
+          "minLength": 40,
+          "pattern": "^[0-9a-f]{40,64}$",
           "title": "Sha",
           "type": "string"
         },

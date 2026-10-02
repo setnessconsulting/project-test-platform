@@ -15,6 +15,7 @@ from test_platform.contracts import (
     QualityProfile,
     RepositoryManifest,
     TestInventory,
+    exact_sha_field,
 )
 
 
@@ -45,7 +46,7 @@ class AgentTestingGuidance(BaseModel):
 
     schema_version: Literal["1"] = "1"
     repository: str = Field(min_length=1)
-    sha: str = Field(min_length=7)
+    sha: str = exact_sha_field()
     profile: ProfileBinding
     affected_behavior_ids: tuple[str, ...]
     required_evidence: tuple[EvidenceClass, ...]

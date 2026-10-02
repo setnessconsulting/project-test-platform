@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
 from test_platform.contracts import DiscoveryReport, DiscoveryState, FrameworkDiscovery
+from test_platform.filesystem_safety import bounded_walk, is_indirect
 
 IGNORED_PARTS = frozenset(
     {
@@ -32,11 +32,20 @@ IGNORED_PARTS = frozenset(
 
 @dataclass(frozen=True)
 class DiscoveryLimits:
-    """Hard traversal and file-read bounds."""
+    """Hard traversal and file-read bounds.
+
+    Every bound is fail-closed: exceeding one yields ``LIMIT_EXCEEDED`` rather
+    than a silently incomplete report. Directory count and total entry count
+    are bounded in addition to file count and depth, because a tree of empty
+    directories contains no files and would otherwise never trip a file cap.
+    """
 
     max_files: int = 20_000
     max_depth: int = 12
     max_text_bytes: int = 1_000_000
+    max_directories: int = 20_000
+    max_entries: int = 60_000
+    max_total_bytes: int = 200_000_000
 
 
 @dataclass(frozen=True)
@@ -49,6 +58,35 @@ class FileRecord:
 
 class DiscoveryError(ValueError):
     """Raised when a requested root cannot be safely inspected."""
+
+
+def _walk_repository(
+    root: Path,
+    limits: DiscoveryLimits,
+) -> tuple[tuple[tuple[Path, tuple[Path, ...]], ...], bool]:
+    """Return bounded, non-following ``(directory, files)`` pairs under root.
+
+    Depth and breadth limits are reported through the second return value so
+    the caller can mark the index truncated and report ``LIMIT_EXCEEDED``.
+    """
+    directories, limit_exceeded = bounded_walk(
+        root,
+        max_depth=limits.max_depth,
+        max_directories=limits.max_directories,
+        max_entries=limits.max_entries,
+    )
+    filtered = tuple(
+        (
+            directory,
+            tuple(
+                path
+                for path in files
+                if not any(part in IGNORED_PARTS for part in path.parts)
+            ),
+        )
+        for directory, files in directories
+    )
+    return filtered, limit_exceeded
 
 
 class FrameworkPlugin(Protocol):
@@ -103,42 +141,30 @@ class RepositoryIndex:
             )
 
         records: list[FileRecord] = []
-        truncated = False
+        total_bytes = 0
+        directories, limit_exceeded = _walk_repository(root, limits)
+        truncated = limit_exceeded
 
-        for current, dirs, filenames in os.walk(root, followlinks=False):
-            current_path = Path(current)
-            try:
-                relative_dir = current_path.relative_to(root)
-            except ValueError as exc:
-                raise DiscoveryError("discovery escaped requested root") from exc
-
-            depth = len(relative_dir.parts)
-            if depth >= limits.max_depth:
-                dirs[:] = []
-            else:
-                safe_dirs: list[str] = []
-                for name in sorted(dirs):
-                    candidate = current_path / name
-                    if name in IGNORED_PARTS or candidate.is_symlink():
-                        continue
-                    safe_dirs.append(name)
-                dirs[:] = safe_dirs
-
-            for filename in sorted(filenames):
+        for _current_path, files in directories:
+            if truncated:
+                break
+            for path in files:
                 if len(records) >= limits.max_files:
                     truncated = True
-                    dirs[:] = []
                     break
-                path = current_path / filename
-                if path.is_symlink() or not path.is_file():
-                    continue
                 try:
                     size = path.stat().st_size
                     relative = path.relative_to(root).as_posix()
                 except OSError:
+                    # An unreadable entry makes the index indeterminate; never
+                    # report a partial tree as a complete one.
+                    truncated = True
                     continue
+                total_bytes += size
+                if total_bytes > limits.max_total_bytes:
+                    truncated = True
+                    break
                 records.append(FileRecord(relative_path=relative, size=size))
-
             if truncated:
                 break
 
@@ -180,10 +206,17 @@ class RepositoryIndex:
             resolved = candidate.resolve(strict=True)
         except OSError:
             return None
-        if not resolved.is_relative_to(self.root) or candidate.is_symlink():
+        if not resolved.is_relative_to(self.root) or is_indirect(candidate):
             return None
         try:
-            return resolved.read_text(encoding="utf-8")
+            # Bound at open time rather than trusting the size observed during
+            # indexing: a file replaced or grown since then must not be read
+            # into memory in full.
+            with resolved.open("rb") as handle:
+                raw = handle.read(self.limits.max_text_bytes + 1)
+            if len(raw) > self.limits.max_text_bytes:
+                return None
+            return raw.decode("utf-8")
         except (UnicodeDecodeError, OSError):
             return None
 

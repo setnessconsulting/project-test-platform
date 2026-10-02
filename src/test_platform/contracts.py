@@ -4,9 +4,24 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import ClassVar, Literal, Self
+from typing import Any, ClassVar, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+# Evidence is only meaningful when it names one exact immutable revision. A
+# short or non-hex identifier cannot bind anything, so every contract that
+# claims to be revision-bound uses this single definition.
+_EXACT_SHA_PATTERN = r"^[0-9a-f]{40,64}$"
+
+
+def exact_sha_field(description: str = "exact repository revision") -> Any:
+    """Return the canonical exact-SHA field used by every revision-bound contract."""
+    return Field(
+        min_length=40,
+        max_length=64,
+        pattern=_EXACT_SHA_PATTERN,
+        description=description,
+    )
 
 
 class ContractModel(BaseModel):
@@ -281,7 +296,7 @@ class TestCaseObservation(ContractModel):
 class TestInventory(ContractModel):
     schema_version: Literal["1"] = "1"
     repository: str = Field(min_length=1)
-    sha: str = Field(min_length=7)
+    sha: str = exact_sha_field()
     tests: tuple[TestCaseObservation, ...]
 
 
@@ -302,7 +317,7 @@ class GapFinding(ContractModel):
 
 
 class TestRunSample(ContractModel):
-    sha: str = Field(min_length=7)
+    sha: str = exact_sha_field()
     result: QualityResult
     duration_seconds: float = Field(ge=0)
     executor: str = Field(min_length=1)
@@ -325,7 +340,7 @@ class ExecutionPlan(ContractModel):
     schema_version: Literal["1"] = "1"
     plan_id: str = Field(min_length=1)
     repository: str = Field(min_length=1)
-    sha: str = Field(min_length=7)
+    sha: str = exact_sha_field()
     profile: ProfileBinding
     trust: ExecutionTrustClass
     policy_version: str = Field(min_length=1)
@@ -344,7 +359,7 @@ class QualityReceipt(ContractModel):
     receipt_id: str = Field(min_length=1)
     plan_id: str = Field(min_length=1)
     repository: str = Field(min_length=1)
-    sha: str = Field(min_length=7)
+    sha: str = exact_sha_field()
     profile: ProfileBinding
     suite_id: str = Field(min_length=1)
     executor: str = Field(min_length=1)
@@ -363,7 +378,7 @@ class QualityAssessment(ContractModel):
     schema_version: Literal["1"] = "1"
     assessment_id: str = Field(min_length=1)
     repository: str = Field(min_length=1)
-    sha: str = Field(min_length=7)
+    sha: str = exact_sha_field()
     profile: ProfileBinding
     result: QualityResult
     gaps: tuple[GapFinding, ...] = ()
@@ -383,7 +398,7 @@ class QualityExport(ContractModel):
     schema_version: Literal["1"] = "1"
     export_id: str = Field(min_length=1)
     repository: str = Field(min_length=1)
-    sha: str = Field(min_length=7)
+    sha: str = exact_sha_field()
     profile: ProfileBinding
     result: QualityResult
     required_behaviors: int = Field(ge=0)
@@ -718,6 +733,10 @@ class JenkinsExecutionRequest(ContractModel):
     cancellation: JenkinsCancellationPolicy = JenkinsCancellationPolicy()
     stale_head: JenkinsStaleHeadPolicy = JenkinsStaleHeadPolicy()
     max_execution_seconds: int = Field(default=7_200, ge=1, le=604_800)
+    # Qualification evidence must be attributable to the exact Test Platform
+    # revision that minted it, so a result produced under different policy
+    # logic cannot be presented as current.
+    platform_version: str = Field(min_length=1, max_length=64)
 
     @model_validator(mode="after")
     def validate_request(self) -> Self:
@@ -803,6 +822,10 @@ class JenkinsReceiptSubmission(ContractModel):
     evidence_origin: EvidenceOrigin
     outcomes: tuple[JenkinsSuiteOutcome, ...] = Field(min_length=1)
     generated_at: datetime
+    # The Test Platform revision that produced this submission. Ingestion
+    # refuses a submission minted by a different revision than the request,
+    # so evidence cannot be carried across a change in platform policy logic.
+    platform_version: str = Field(min_length=1, max_length=64)
 
     @model_validator(mode="after")
     def validate_submission(self) -> Self:
