@@ -55,12 +55,23 @@ pilot qualification, migration parity, adversarial release hardening, and final 
 
 ## Remaining epic work
 
-- API-390: project-jenkins ExecutionPlan/QualityReceipt consumer integration
-- API-393: project-portfolio-graph QualityExport consumer integration
-- API-394: four representative real-repository qualifications
+Implemented since the last revision: API-390 (Jenkins ExecutionPlan/QualityReceipt
+consumer contract), API-401 (deployment placement migrates to Jenkins when qualified).
+Phase A core adversarial hardening (API-396) is covered by the deterministic
+`tests/test_adversarial_core.py` suite plus existing replay/trust/waiver/bound tests.
+
+- API-393: project-portfolio-graph QualityExport consumer integration (export side
+  complete; consumer side pending in project-portfolio-graph)
+- API-394: four representative real-repository qualifications (pilot manifests pending)
 - API-395: same-SHA Jenkins shadow parity/fallback and safe Actions migration proof
-- API-396: final adversarial hardening after primary integrations/pilots
+  (gated on CONSULTING-355 Jenkins GO)
+- API-396: Phase A core adversarial hardening (implemented; closeout after review)
+- API-398: portfolio-wide Test Platform + Jenkins onboarding and CI/CD migration
+  (gated on API-394, API-395, API-401, and CONSULTING-368)
+- API-399: Phase B integration adversarial hardening (gated on real integration evidence)
 - API-397: exact-SHA V1 qualification, release, and maintenance-mode transition
+- API-400: bounded exact-SHA CI fallback for frozen project-jira-api (separate lane;
+  excluded from the API-398 active-repository set)
 
 ## Evidence semantics
 

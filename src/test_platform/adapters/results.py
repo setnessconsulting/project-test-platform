@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from enum import StrEnum
 from xml.etree import ElementTree
@@ -10,6 +11,8 @@ from test_platform.contracts import QualityResult
 
 DEFAULT_MAX_RESULT_BYTES = 2_000_000
 DEFAULT_MAX_TEST_CASES = 10_000
+DEFAULT_MAX_TEST_ID_CHARS = 1024
+DEFAULT_MAX_MESSAGE_CHARS = 4096
 
 
 class ResultAdapterError(ValueError):
@@ -51,7 +54,10 @@ class ParsedTestResults:
 
 
 def _bounded_xml(content: str | bytes, *, max_bytes: int) -> str:
-    raw = content.encode("utf-8") if isinstance(content, str) else content
+    try:
+        raw = content.encode("utf-8") if isinstance(content, str) else content
+    except (UnicodeEncodeError, ValueError) as exc:
+        raise ResultAdapterError("result document must be UTF-8") from exc
     if len(raw) > max_bytes:
         raise ResultAdapterError(f"result document exceeds {max_bytes} bytes")
     try:
@@ -72,6 +78,8 @@ def _duration(value: str | None) -> float:
         duration = float(value)
     except ValueError as exc:
         raise ResultAdapterError(f"invalid test duration {value!r}") from exc
+    if not math.isfinite(duration):
+        raise ResultAdapterError("test duration must be finite")
     if duration < 0:
         raise ResultAdapterError("test duration cannot be negative")
     return duration
@@ -81,7 +89,23 @@ def _stable_case_id(framework: str, classname: str | None, name: str | None) -> 
     candidate = "::".join(part for part in (classname, name) if part)
     if not candidate:
         raise ResultAdapterError("test case is missing both classname and name")
-    return f"{framework}:{candidate}"
+    test_id = f"{framework}:{candidate}"
+    if len(test_id) > DEFAULT_MAX_TEST_ID_CHARS:
+        raise ResultAdapterError(
+            f"test case identity exceeds {DEFAULT_MAX_TEST_ID_CHARS} characters"
+        )
+    if any(ord(char) < 32 or ord(char) == 127 for char in test_id):
+        raise ResultAdapterError("test case identity contains control characters")
+    return test_id
+
+
+def _bounded_message(value: str | None) -> str | None:
+    """Truncate an over-long result message deterministically so output stays bounded."""
+    if value is None:
+        return None
+    if len(value) > DEFAULT_MAX_MESSAGE_CHARS:
+        return value[:DEFAULT_MAX_MESSAGE_CHARS] + "…[truncated]"
+    return value
 
 
 def _attempts(
@@ -118,6 +142,8 @@ def parse_junit_xml(
         root = ElementTree.fromstring(text)
     except ElementTree.ParseError as exc:
         raise ResultAdapterError("malformed JUnit XML") from exc
+    except RecursionError as exc:
+        raise ResultAdapterError("JUnit XML nesting exceeds parser bounds") from exc
 
     cases = root.findall(".//testcase")
     if len(cases) > max_cases:
@@ -132,13 +158,13 @@ def parse_junit_xml(
         skipped = case.find("skipped")
         if error is not None:
             state = TestCaseResultState.ERROR
-            message = error.get("message")
+            message = _bounded_message(error.get("message"))
         elif failure is not None:
             state = TestCaseResultState.FAIL
-            message = failure.get("message")
+            message = _bounded_message(failure.get("message"))
         elif skipped is not None:
             state = TestCaseResultState.SKIPPED
-            message = skipped.get("message")
+            message = _bounded_message(skipped.get("message"))
         else:
             state = TestCaseResultState.PASS
             message = None
@@ -160,6 +186,8 @@ def parse_nunit_xml(
         root = ElementTree.fromstring(text)
     except ElementTree.ParseError as exc:
         raise ResultAdapterError("malformed NUnit XML") from exc
+    except RecursionError as exc:
+        raise ResultAdapterError("NUnit XML nesting exceeds parser bounds") from exc
 
     cases = root.findall(".//test-case")
     if len(cases) > max_cases:
@@ -181,7 +209,7 @@ def parse_nunit_xml(
             state = TestCaseResultState.ERROR
         reason = case.find(".//message")
         message = reason.text.strip() if reason is not None and reason.text else None
-        raw.append((test_id, state, duration, message))
+        raw.append((test_id, state, duration, _bounded_message(message)))
 
     return ParsedTestResults(framework=framework, tests=_attempts(raw, framework))
 
