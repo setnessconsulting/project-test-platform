@@ -407,6 +407,7 @@ def _dispatch(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
                 for item in decisions
                 if item["placement"] in {
                     "move-to-jenkins",
+                    "move-deployment-to-jenkins",
                     "remove-duplicate",
                 }
             ]

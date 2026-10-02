@@ -39,14 +39,24 @@ policy.
 
 Workflow placement is advisory and evidence-driven. Cost alone never decides placement.
 
-- deployment work is retained as deployment;
+- routine deployment migrates to Jenkins as `move-deployment-to-jenkins` only after
+  trusted context, exact SHA, provider target, verification gate, scoped credentials,
+  provider read-back, and rollback prerequisites are all observed; otherwise it fails
+  closed as `not-evaluated` and never becomes an unsafe PASS;
 - GitHub-native/security-hosted work remains on GitHub;
 - owner-controlled fallback lanes remain fallback;
 - routine verification moves to Jenkins only after equivalent Test Platform plan coverage and
   Jenkins capability are established;
 - duplicate removal requires explicit duplicate identity plus equivalent evidence intent.
 
-Hosted verification and deployment minutes are reported separately. If usage coverage is
-incomplete, savings remain unknown rather than estimated as fact.
+The legacy `retain-deployment` value remains readable for historical evidence but is never
+emitted by the current classifier. Provider/deployment architecture authority remains
+external to Test Platform; Test Platform recommends and records placement, it never deploys.
+Production credentials are never made available to untrusted PR execution.
+
+Hosted verification and deployment minutes are reported separately. Deployment migration
+candidates are reported separately from verification savings so deployment minutes are never
+misattributed as verification savings. If usage coverage is incomplete, savings remain
+unknown rather than estimated as fact.
 
 This module produces placement decisions only. It never disables or edits a GitHub workflow.

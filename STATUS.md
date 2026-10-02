@@ -33,7 +33,8 @@ pilot qualification, migration parity, adversarial release hardening, and final 
 - semantic receipt IDs and explicit replay detection
 - live-evidence trust enforcement
 - evidence-based GitHub Actions workflow placement
-- deployment/security/fallback lanes retained deliberately
+- routine deployment migrates to Jenkins via move-deployment-to-jenkins once qualified,
+  otherwise fails closed; security/fallback lanes retained deliberately
 - hosted verification and deployment minutes separated
 - no savings claim from incomplete usage evidence
 
