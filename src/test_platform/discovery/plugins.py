@@ -77,6 +77,7 @@ class NodeFrameworkDiscoveryPlugin:
     def discover(self, index: RepositoryIndex) -> FrameworkDiscovery:
         configs: list[str] = []
         tests: list[str] = []
+        candidate_tests: list[str] = []
         commands: list[str] = []
         malformed: list[str] = []
 
@@ -85,23 +86,27 @@ class NodeFrameworkDiscoveryPlugin:
             if name in self.config_names:
                 configs.append(path)
             if _looks_like_node_test(path, self.framework_id):
-                tests.append(path)
+                candidate_tests.append(path)
             if name != "package.json":
                 continue
 
             text = index.read_text(path)
             if text is None:
                 continue
-            raw_mentions_framework = any(package in text for package in self.package_names)
-            if not raw_mentions_framework:
-                continue
             try:
                 package = json.loads(text)
             except json.JSONDecodeError:
-                malformed.append(path)
+                # The file cannot be parsed, so dependency evidence is unavailable.
+                # Attribute it only when the raw text names this framework as an
+                # exact quoted dependency key, and report nothing at all for every
+                # other Node framework: an unparseable package.json does not prove
+                # that jest, vitest, and playwright are all present.
+                if _declares_exact_dependency_key(text, self.package_names):
+                    malformed.append(path)
                 continue
             if not isinstance(package, dict):
-                malformed.append(path)
+                if _declares_exact_dependency_key(text, self.package_names):
+                    malformed.append(path)
                 continue
 
             dependencies = {}
@@ -122,10 +127,19 @@ class NodeFrameworkDiscoveryPlugin:
 
         if malformed:
             state = DiscoveryState.MALFORMED
-        elif configs or tests:
+            tests = []
+        elif configs:
+            # A framework is only present when a real config file or an actual
+            # dependency proves it. Bare test paths are collected as candidates
+            # because naming alone is not evidence of a runner: a repository can
+            # hold jest, vitest, and playwright specs side by side, and attributing
+            # all of them to every Node framework invents inventory and lets one
+            # framework's evidence appear to cover another's journeys.
             state = DiscoveryState.DETECTED
+            tests = candidate_tests
         else:
             state = DiscoveryState.UNKNOWN
+            tests = []
 
         return FrameworkDiscovery(
             framework=self.framework_id,
@@ -179,27 +193,36 @@ def _safe_identifier(value: str) -> bool:
     return all(character.isalnum() or character in "._:-" for character in value)
 
 
+def _declares_exact_dependency_key(text: str, package_names: frozenset[str]) -> bool:
+    """Return whether raw JSON text names a package as an exact quoted key.
+
+    Used only when ``package.json`` cannot be parsed. A substring test such as
+    ``"jest" in text`` also matches unrelated packages that embed the name, for
+    example ``@testing-library/jest-dom``, and would invent a framework the
+    repository never uses. Requiring the full quoted key keeps attribution
+    honest even when the file is unparseable.
+    """
+    return any(f'"{package}"' in text for package in package_names)
+
+
 def _looks_like_node_test(path: str, framework: str) -> bool:
+    """Match a path only against the owning framework's own test conventions.
+
+    Node test naming is not disjoint across frameworks: a Playwright
+    ``.spec.ts`` must never be claimed by jest or vitest, and a unit
+    ``.test.ts`` must never be claimed by Playwright. Claiming a foreign
+    framework's path inflates inventory counts and lets the wrong executor's
+    evidence appear to cover a behavior it never ran.
+    """
     lowered = path.lower()
+    spec_suffixes = (".spec.ts", ".spec.tsx", ".spec.js", ".spec.jsx")
+    unit_suffixes = (".test.ts", ".test.tsx", ".test.js", ".test.jsx")
+
     if framework == "playwright":
-        return (
-            lowered.endswith(".spec.ts")
-            or lowered.endswith(".spec.js")
-            or "/e2e/" in f"/{lowered}"
-        )
-    return any(
-        lowered.endswith(suffix)
-        for suffix in (
-            ".test.ts",
-            ".test.tsx",
-            ".test.js",
-            ".test.jsx",
-            ".spec.ts",
-            ".spec.tsx",
-            ".spec.js",
-            ".spec.jsx",
-        )
-    )
+        # Playwright drives assembled browser journeys; its specs use .spec.*,
+        # and its suites conventionally live under an e2e-style directory.
+        return lowered.endswith(spec_suffixes) or "/e2e/" in f"/{lowered}"
+    return lowered.endswith(unit_suffixes)
 
 
 def builtin_plugins() -> tuple[FrameworkPlugin, ...]:
