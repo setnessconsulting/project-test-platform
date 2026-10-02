@@ -37,3 +37,13 @@ A breaking change requires:
 - consumer qualification for Jenkins, Portfolio Graph, and agent-facing integrations where
   applicable;
 - preservation of old-version rejection semantics until the migration is complete.
+
+## API-401 deployment-placement evolution (V1 pre-release)
+
+API-401 adds `move-deployment-to-jenkins` to `WorkflowPlacement` and records explicit
+deployment-migration prerequisites on workflow observations. The legacy `retain-deployment`
+value remains in the schema for reading historical evidence but is never emitted by the
+current classifier. This is an explicitly reviewed pre-release correction under the
+owner-approved portfolio end state (routine CI and deployment execution move to Jenkins);
+it does not bump the V1 major version because V1 has not yet released under API-397 and no
+qualified consumer has been released against the stale retention policy.

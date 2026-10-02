@@ -99,7 +99,12 @@ class TestValueClassification(StrEnum):
 class WorkflowPlacement(StrEnum):
     MOVE_TO_JENKINS = "move-to-jenkins"
     RETAIN_GITHUB = "retain-github"
+    # Legacy value retained for reading historical evidence only. The current
+    # classifier never emits it: routine deployment workflows migrate to
+    # Jenkins via MOVE_DEPLOYMENT_TO_JENKINS once qualified, and otherwise
+    # fail closed as NOT_EVALUATED. See API-401.
     RETAIN_DEPLOYMENT = "retain-deployment"
+    MOVE_DEPLOYMENT_TO_JENKINS = "move-deployment-to-jenkins"
     MANUAL_FALLBACK = "manual-fallback"
     REMOVE_DUPLICATE = "remove-duplicate"
     NOT_EVALUATED = "not-evaluated"

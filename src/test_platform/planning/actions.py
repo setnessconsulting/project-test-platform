@@ -26,6 +26,17 @@ class WorkflowObservation:
     duplicate_of: str | None = None
     hosted_minutes: float | None = None
     usage_complete: bool = False
+    # Deployment-migration prerequisites (API-401). All default to the
+    # fail-closed state. Provider/deployment architecture authority remains
+    # external to Test Platform; these fields record that the external
+    # prerequisites have been observed, never that Test Platform deploys.
+    deployment_provider_target: str | None = None
+    deployment_trusted_context: bool = False
+    deployment_exact_sha: bool = False
+    deployment_verification_gate: bool = False
+    deployment_credentials_scoped: bool = False
+    deployment_readback: bool = False
+    deployment_rollback: bool = False
 
 
 @dataclass(frozen=True)
@@ -38,16 +49,28 @@ class ActionsPlacementReport:
     candidate_moved_minutes: float | None
 
 
+def _deployment_migration_ready(workflow: WorkflowObservation) -> bool:
+    """Return whether all deterministic deployment-migration prerequisites hold."""
+    return bool(
+        workflow.jenkins_capable
+        and workflow.equivalent_plan_coverage
+        and workflow.deployment_trusted_context
+        and workflow.deployment_exact_sha
+        and workflow.deployment_provider_target
+        and workflow.deployment_verification_gate
+        and workflow.deployment_credentials_scoped
+        and workflow.deployment_readback
+        and workflow.deployment_rollback
+    )
+
+
 def classify_workflow(
     workflow: WorkflowObservation,
     *,
     observations_by_id: dict[str, WorkflowObservation],
 ) -> WorkflowPlacementDecision:
     """Classify workflow placement from role/equivalence evidence, never from cost alone."""
-    if workflow.deployment:
-        placement = WorkflowPlacement.RETAIN_DEPLOYMENT
-        reason = "workflow performs deployment; deployment is deliberately retained"
-    elif workflow.github_native or workflow.security_native:
+    if workflow.github_native or workflow.security_native:
         placement = WorkflowPlacement.RETAIN_GITHUB
         reason = "workflow depends on GitHub-native or security-hosted capability"
     elif workflow.manual_fallback:
@@ -66,6 +89,22 @@ def classify_workflow(
         else:
             placement = WorkflowPlacement.NOT_EVALUATED
             reason = "duplicate claim lacks equivalent evidence intent or plan coverage"
+    elif workflow.deployment:
+        if _deployment_migration_ready(workflow):
+            placement = WorkflowPlacement.MOVE_DEPLOYMENT_TO_JENKINS
+            reason = (
+                "routine deployment migrates to Jenkins; provider authority "
+                "remains external, execution requires trusted context, exact "
+                "SHA, provider target, verification gate, scoped credentials, "
+                "read-back and rollback"
+            )
+        else:
+            placement = WorkflowPlacement.NOT_EVALUATED
+            reason = (
+                "deployment lacks qualified Jenkins migration prerequisites "
+                "(trusted context, exact SHA, provider target, verification "
+                "gate, scoped credentials, read-back, rollback); fail closed"
+            )
     elif (
         workflow.verification
         and workflow.equivalent_plan_coverage

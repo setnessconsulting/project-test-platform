@@ -2084,6 +2084,7 @@
         "move-to-jenkins",
         "retain-github",
         "retain-deployment",
+        "move-deployment-to-jenkins",
         "manual-fallback",
         "remove-duplicate",
         "not-evaluated"

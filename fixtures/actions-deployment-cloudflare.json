@@ -1,0 +1,51 @@
+[
+  {
+    "workflow_id": "ci-verify",
+    "evidence_intent": ["build", "test"],
+    "verification": true,
+    "equivalent_plan_coverage": true,
+    "jenkins_capable": true,
+    "hosted_minutes": 120.0,
+    "usage_complete": true
+  },
+  {
+    "workflow_id": "deploy-cloudflare-workers",
+    "evidence_intent": ["deploy", "cloudflare-workers:production"],
+    "deployment": true,
+    "equivalent_plan_coverage": true,
+    "jenkins_capable": true,
+    "deployment_provider_target": "cloudflare-workers:production",
+    "deployment_trusted_context": true,
+    "deployment_exact_sha": true,
+    "deployment_verification_gate": true,
+    "deployment_credentials_scoped": true,
+    "deployment_readback": true,
+    "deployment_rollback": true,
+    "hosted_minutes": 45.0,
+    "usage_complete": true
+  },
+  {
+    "workflow_id": "deploy-unqualified",
+    "evidence_intent": ["deploy"],
+    "deployment": true,
+    "equivalent_plan_coverage": false,
+    "jenkins_capable": false,
+    "hosted_minutes": 30.0,
+    "usage_complete": true
+  },
+  {
+    "workflow_id": "codeql",
+    "evidence_intent": ["security-scan"],
+    "security_native": true,
+    "hosted_minutes": 15.0,
+    "usage_complete": true
+  },
+  {
+    "workflow_id": "clean-room-fallback",
+    "evidence_intent": ["build", "test"],
+    "verification": true,
+    "manual_fallback": true,
+    "hosted_minutes": 10.0,
+    "usage_complete": true
+  }
+]

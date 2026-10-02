@@ -197,6 +197,13 @@ def parse_workflow_observations(value: Any) -> tuple[WorkflowObservation, ...]:
         "duplicate_of",
         "hosted_minutes",
         "usage_complete",
+        "deployment_provider_target",
+        "deployment_trusted_context",
+        "deployment_exact_sha",
+        "deployment_verification_gate",
+        "deployment_credentials_scoped",
+        "deployment_readback",
+        "deployment_rollback",
     }
     result: list[WorkflowObservation] = []
     for raw in value:
@@ -212,6 +219,11 @@ def parse_workflow_observations(value: Any) -> tuple[WorkflowObservation, ...]:
         hosted = raw.get("hosted_minutes")
         if hosted is not None and not isinstance(hosted, (int, float)):
             raise OperatorError("hosted_minutes must be numeric or null")
+        provider_target = raw.get("deployment_provider_target")
+        if provider_target is not None and not isinstance(provider_target, str):
+            raise OperatorError("deployment_provider_target must be a string or null")
+        if isinstance(provider_target, str) and not provider_target:
+            raise OperatorError("deployment_provider_target must be non-empty when set")
         result.append(
             WorkflowObservation(
                 workflow_id=str(raw["workflow_id"]),
@@ -232,6 +244,19 @@ def parse_workflow_observations(value: Any) -> tuple[WorkflowObservation, ...]:
                 ),
                 hosted_minutes=float(hosted) if hosted is not None else None,
                 usage_complete=bool(raw.get("usage_complete", False)),
+                deployment_provider_target=provider_target,
+                deployment_trusted_context=bool(
+                    raw.get("deployment_trusted_context", False)
+                ),
+                deployment_exact_sha=bool(raw.get("deployment_exact_sha", False)),
+                deployment_verification_gate=bool(
+                    raw.get("deployment_verification_gate", False)
+                ),
+                deployment_credentials_scoped=bool(
+                    raw.get("deployment_credentials_scoped", False)
+                ),
+                deployment_readback=bool(raw.get("deployment_readback", False)),
+                deployment_rollback=bool(raw.get("deployment_rollback", False)),
             )
         )
     return tuple(result)
