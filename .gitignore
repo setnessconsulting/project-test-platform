@@ -15,3 +15,6 @@ Thumbs.db
 *.log
 artifacts/
 .private/
+# Regenerable Jenkins qualification evidence stays out of the public core.
+# See docs/jenkins-consumer-contract.md; reproduce with the qualification command.
+.jenkins-qualification/
