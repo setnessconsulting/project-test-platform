@@ -53,5 +53,7 @@ def test_manifest_rejects_manifest_symlink(tmp_path: Path) -> None:
     except OSError:
         pytest.skip("symlink creation unavailable in this environment")
 
-    with pytest.raises(ManifestError, match="must not be a symlink"):
+    # A symlink, junction, or other reparse point is refused; the message names
+    # all three because the check covers more than Path.is_symlink().
+    with pytest.raises(ManifestError, match="must not be a link or junction"):
         load_manifest(link)
