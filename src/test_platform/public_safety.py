@@ -30,6 +30,7 @@ __all__ = [
 
 IGNORED_PARTS = {
     ".git",
+    ".hypothesis",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
