@@ -5,3 +5,7 @@ This documentation-only change supports exact-head pull-request observation for 
 The existing Actions `verify` workflow grants `contents: read`, runs on a GitHub-hosted runner, sets up Python 3.12, installs `.[dev]`, and runs `python -m test_platform.verify`. The workflow uses no CI credentials. GitHub Actions remains authoritative while Jenkins is shadow evidence.
 
 This note makes no claim about production behavior or deployment. It contains no credentials or private provider evidence. Close the temporary source pull request unmerged after exact-head Actions and shadow readback are recorded.
+
+## Second documentation revision
+
+This second documentation-only revision creates a distinct pull-request head for exact-SHA shadow-check comparison. It does not change application code or CI configuration. Record each provider result against its requested commit SHA; close this temporary source pull request unmerged after the readback is complete.
